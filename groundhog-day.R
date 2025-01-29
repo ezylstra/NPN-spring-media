@@ -1,0 +1,141 @@
+# Groundhog day script
+# Adapted from https://github.com/alyssarosemartin/spring-media/blob/main/groundhog/groundhog.R#L1
+# 29 Jan 2025
+
+library(rnpn)
+library(dplyr)
+library(ggplot2)
+library(terra)
+library(tidyterra)
+library(ggimage)
+
+# Set parameters --------------------------------------------------------------#
+
+# Year
+year <- 2025
+
+# Define breaks that will be used to delineate areas cooler/warmer than 30-year
+# normals. Breaks = AGDD anomolies on Groundhog day (deg F).
+breaks <- c(-500, -20, 20, 500)
+
+# Colors for map (blue = cooler, offwhite = normal, orange = warmer)
+cols <- c("#6fa8d6", "#f7f0da", "#fa824d")
+# plot(1:3, rep(1, 3), pch = 19, cex = 5, col = cols)
+
+# Helper calls ----------------------------------------------------------------#
+
+layers <- npn_get_layer_details()
+# layers$abstract
+
+phenoclasses <- npn_pheno_classes() %>% data.frame()
+# phenoclasses
+
+# Aquire, format data ---------------------------------------------------------#
+
+# Download individual phenometrics so far this year- breaking leaf bud / initial 
+# growth and open flowers
+df <- npn_download_individual_phenometrics(
+  request_source = 'erinz', 
+  years = year,
+  pheno_class_ids = c(1, 7)
+)
+
+# Remove observations outside the continental US (for now, assuming
+# that if state is missing, location is in lower 48)
+states48 <- state.abb[! state.abb %in% c("AK", "HI")]
+df48 <- df %>%
+  filter(state %in% c(states48, "-9999"))
+
+leaf <- subset(df48, pheno_class_id == 1)
+flower<- subset(df48, pheno_class_id == 7)
+
+#### Any other filtering needed?
+
+# Acquire raster forecast anomaly for Feb 2 (32 base)
+layers %>% 
+  filter(name == "gdd:agdd_anomaly") %>% 
+  select(name, title, abstract, dimension.name)
+
+gh_day <- paste0(year, "-02-02")
+groundhog <- npn_download_geospatial(coverage_id = "gdd:agdd_anomaly", 
+                                     date = gh_day)  
+# plot(groundhog)
+# hist(groundhog)
+
+# Create map ------------------------------------------------------------------#
+
+# Note: flower and leaf icons already downloaded into icons folder
+# (leaf.svg, flower.ico)
+
+# Convert to spatraster and bin data
+ghd <- rast(groundhog)
+ghd_class <- terra::classify(x = ghd, 
+                             rcl = breaks, 
+                             include.lowest = TRUE)
+freq(ghd_class)
+plot(ghd_class)
+
+ghd_plot <- ggplot() +
+  geom_spatraster(data = ghd_class, maxcell = Inf) +
+  scale_fill_manual(values = cols, na.value = "transparent") +
+  geom_image(data = leaf, aes(x = longitude, y = latitude, 
+                              image = "icons/leaf.svg")) +
+  geom_image(data = flower, aes(x = longitude, y = latitude,
+                              image = "icons/flower.ico")) +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent", color = NA)) 
+ghd_plot
+
+ghd_filename <- paste0("output/groundhog-day-", year, ".png")
+ggsave(filename = ghd_filename,
+       plot = ghd_plot,
+       width = 6,
+       height = 5,
+       units = "in",
+       dpi = 600,
+       bg = "transparent")
+
+
+
+# Map using leaflet (OLD) -----------------------------------------------------#
+
+# library(leaflet)
+# library(leaflet.extras)
+# library(mapview)
+# library(webshot2)
+# library(htmlwidgets)
+# 
+# # Prep point data viz, by creating and sizing leaf and flower icons
+# my_icons <- iconList(
+#   ileaf <- makeIcon(iconUrl = "https://www.freeiconspng.com/uploads/leaf-icon-16.png",
+#                     iconWidth = 20, iconHeight = 20),
+#   iflower <- makeIcon(iconUrl = "https://www.freeiconspng.com/uploads/purple-flower-png-17.png",
+#                       iconWidth = 20, iconHeight = 20)
+# )
+# 
+# # Prep raster viz with  bins and palette (original, with 2 warm bins)
+# # bins <- c(-500, -20, 20, 200, 500) # Why create a break at +200?
+# # pal <- colorBin(c("#6fa8d6", "#f7f0da", "#fa824d", "#f44f07"), 
+# #                 domain = groundhog, bins = bins,  na.color = "transparent")
+# 
+# # Prep raster viz with  bins and palette (new, with 1 warm bin)
+# pal <- colorBin(cols,
+#                 domain = groundhog, 
+#                 bins = breaks,  
+#                 na.color = "transparent")
+# 
+# # Create map
+# m <- leaflet(leaf) %>% 
+#   addRasterImage(groundhog, colors = pal, opacity = 1) %>%
+#   addMarkers(lng = ~leaf$longitude, lat = ~leaf$latitude, icon = ileaf) %>%
+#   addMarkers(lng = ~flower$longitude, lat = ~flower$latitude, icon = iflower) %>%
+#   setMapWidgetStyle(list(background= "transparent"))
+# m
+# 
+# saveWidget(m, "temp.html", selfcontained = FALSE)
+# webshot("temp.html", file = "leaflet_map.png", cliprect = "viewport")
