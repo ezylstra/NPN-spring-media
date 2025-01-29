@@ -79,7 +79,7 @@ ghd_plot <- ggplot() +
   geom_spatraster(data = ghd_class, maxcell = Inf) +
   scale_fill_manual(values = cols, na.value = "transparent") +
   geom_image(data = leaf, aes(x = longitude, y = latitude, 
-                              image = "icons/leaf.svg")) +
+                              image = "icons/leaf.png")) +
   geom_image(data = flower, aes(x = longitude, y = latitude,
                               image = "icons/flower.ico")) +
   theme(legend.position = "none",
