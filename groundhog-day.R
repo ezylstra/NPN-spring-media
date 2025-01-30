@@ -1,6 +1,6 @@
 # Groundhog day script
 # Adapted from https://github.com/alyssarosemartin/spring-media/blob/main/groundhog/groundhog.R#L1
-# 29 Jan 2025
+# 30 Jan 2025
 
 library(rnpn)
 library(dplyr)
@@ -30,10 +30,10 @@ layers <- npn_get_layer_details()
 phenoclasses <- npn_pheno_classes() %>% data.frame()
 # phenoclasses
 
-# Aquire, format data ---------------------------------------------------------#
+# Aquire, format phenometric data ---------------------------------------------#
 
-# Download individual phenometrics so far this year- breaking leaf bud / initial 
-# growth and open flowers
+# Download individual phenometrics (first yeses) so far this year: 
+# breaking leaf bud / initial growth and open flowers
 df <- npn_download_individual_phenometrics(
   request_source = 'erinz', 
   years = year,
@@ -46,14 +46,60 @@ states48 <- state.abb[! state.abb %in% c("AK", "HI")]
 df48 <- df %>%
   filter(state %in% c(states48, "-9999"))
 
+# Simplify first observation data
+df48 <- df48 %>%
+  select(site_id, latitude, longitude, elevation_in_meters, state, 
+         common_name, individual_id, phenophase_description, pheno_class_id,
+         first_yes_day, numdays_since_prior_no, last_yes_day, 
+         numdays_until_next_no) %>%
+  rename(lat = latitude,
+         lon = longitude, 
+         elev = elevation_in_meters, 
+         id = individual_id, 
+         phenophase = phenophase_description,
+         first_yes = first_yes_day,
+         prior_no = numdays_since_prior_no,
+         last_yes = last_yes_day,
+         next_no = numdays_until_next_no) %>%
+  mutate(prior_no = ifelse(prior_no == -9999, NA, prior_no),
+         next_no = ifelse(next_no == -9999, NA, next_no),
+         elev = ifelse(elev == -9999, NA, elev),
+         state = ifelse(state == "-9999", NA, state)) %>%
+  data.frame()
+
+# Look at species included
+count(df48, common_name)
+# One 'ohi'a lehua in CA. Will delete
+df48 <- df48 %>%
+  filter(common_name != "'ohi'a lehua")
+
+# Distribution of first observation dates
+ggplot(df48) +
+  geom_histogram(aes(x = first_yes)) +
+  facet_wrap(~pheno_class_id, ncol = 1)
+
+# How many observations and individuals, and what proportion with prior no?
+df48 %>%
+  group_by(pheno_class_id) %>%
+  summarize(n_obs = n(),
+            with_prior_no = sum(is.na(prior_no)),
+            n_indiv = n_distinct(id)) %>%
+  data.frame() %>%
+  mutate(prop_prior_no = with_prior_no / n_obs)
+
+# Keep just one "first yes" for each plant and phenophase class 
+df48 <- df48 %>%
+  arrange(pheno_class_id, common_name, id, first_yes) %>%
+  distinct(pheno_class_id, id, .keep_all = TRUE)
+
 leaf <- subset(df48, pheno_class_id == 1)
 flower<- subset(df48, pheno_class_id == 7)
 
-#### Any other filtering needed?
+# Aquire forecasted AGDD anomalies --------------------------------------------#
 
 # Acquire raster forecast anomaly for Feb 2 (32 base)
-layers %>% 
-  filter(name == "gdd:agdd_anomaly") %>% 
+layers %>%
+  filter(name == "gdd:agdd_anomaly") %>%
   select(name, title, abstract, dimension.name)
 
 gh_day <- paste0(year, "-02-02")
@@ -78,10 +124,8 @@ plot(ghd_class)
 ghd_plot <- ggplot() +
   geom_spatraster(data = ghd_class, maxcell = Inf) +
   scale_fill_manual(values = cols, na.value = "transparent") +
-  geom_image(data = leaf, aes(x = longitude, y = latitude, 
-                              image = "icons/leaf.png")) +
-  geom_image(data = flower, aes(x = longitude, y = latitude,
-                              image = "icons/flower.ico")) +
+  geom_image(data = leaf, aes(x = lon, y = lat, image = "icons/leaf.png")) +
+  geom_image(data = flower, aes(x = lon, y = lat, image = "icons/flower.ico")) +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_blank(),
@@ -132,8 +176,8 @@ ggsave(filename = ghd_filename,
 # # Create map
 # m <- leaflet(leaf) %>% 
 #   addRasterImage(groundhog, colors = pal, opacity = 1) %>%
-#   addMarkers(lng = ~leaf$longitude, lat = ~leaf$latitude, icon = ileaf) %>%
-#   addMarkers(lng = ~flower$longitude, lat = ~flower$latitude, icon = iflower) %>%
+#   addMarkers(lng = ~leaf$lon, lat = ~leaf$lat, icon = ileaf) %>%
+#   addMarkers(lng = ~flower$lon, lat = ~flower$lat, icon = iflower) %>%
 #   setMapWidgetStyle(list(background= "transparent"))
 # m
 # 
