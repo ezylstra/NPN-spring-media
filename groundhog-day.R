@@ -1,6 +1,6 @@
 # Groundhog day script
 # Adapted from https://github.com/alyssarosemartin/spring-media/blob/main/groundhog/groundhog.R#L1
-# 30 Jan 2025
+# 31 Jan 2025
 
 library(rnpn)
 library(dplyr)
@@ -33,7 +33,7 @@ phenoclasses <- npn_pheno_classes() %>% data.frame()
 # Aquire, format phenometric data ---------------------------------------------#
 
 # Download individual phenometrics (first yeses) so far this year: 
-# breaking leaf bud / initial growth and open flowers
+# breaking leaf bud / initial growth (class 1) and open flowers (class 7)
 df <- npn_download_individual_phenometrics(
   request_source = 'erinz', 
   years = year,
@@ -69,7 +69,7 @@ df48 <- df48 %>%
 
 # Look at species included
 count(df48, common_name)
-# One 'ohi'a lehua in CA. Will delete
+# Delete any 'ohi'a lehua records
 df48 <- df48 %>%
   filter(common_name != "'ohi'a lehua")
 
@@ -78,19 +78,24 @@ ggplot(df48) +
   geom_histogram(aes(x = first_yes)) +
   facet_wrap(~pheno_class_id, ncol = 1)
 
-# How many observations and individuals, and what proportion with prior no?
+# How many observations and individuals?
 df48 %>%
   group_by(pheno_class_id) %>%
   summarize(n_obs = n(),
-            with_prior_no = sum(is.na(prior_no)),
-            n_indiv = n_distinct(id)) %>%
-  data.frame() %>%
-  mutate(prop_prior_no = with_prior_no / n_obs)
+            n_indiv = n_distinct(id))
 
 # Keep just one "first yes" for each plant and phenophase class 
 df48 <- df48 %>%
   arrange(pheno_class_id, common_name, id, first_yes) %>%
   distinct(pheno_class_id, id, .keep_all = TRUE)
+
+# How many observations, and what proportion have prior no?
+df48 %>%
+  group_by(pheno_class_id) %>%
+  summarize(n_obs = n(),
+            with_prior_no = sum(is.na(prior_no))) %>%
+  data.frame() %>%
+  mutate(prop_prior_no = with_prior_no / n_obs)
 
 leaf <- subset(df48, pheno_class_id == 1)
 flower<- subset(df48, pheno_class_id == 7)
