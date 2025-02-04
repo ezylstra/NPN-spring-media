@@ -115,7 +115,7 @@ groundhog <- npn_download_geospatial(coverage_id = "gdd:agdd_anomaly",
 
 # Create map ------------------------------------------------------------------#
 
-# Note: flower and leaf icons already downloaded into icons folder
+# Note: flower and leaf icons already downloaded into resources folder
 # (leaf.svg, flower.ico)
 
 # Convert to spatraster and bin data
@@ -129,8 +129,8 @@ plot(ghd_class)
 ghd_plot <- ggplot() +
   geom_spatraster(data = ghd_class, maxcell = Inf) +
   scale_fill_manual(values = cols, na.value = "transparent") +
-  geom_image(data = leaf, aes(x = lon, y = lat, image = "icons/leaf.png")) +
-  geom_image(data = flower, aes(x = lon, y = lat, image = "icons/flower.ico")) +
+  geom_image(data = leaf, aes(x = lon, y = lat, image = "resources/leaf.png")) +
+  geom_image(data = flower, aes(x = lon, y = lat, image = "resources/flower.ico")) +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_blank(),
