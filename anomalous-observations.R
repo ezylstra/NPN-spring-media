@@ -1,18 +1,20 @@
 # Anomalous observations script
 # Originally developed by A. Rosemartin and T. Crimmins
 # Adapted from https://github.com/alyssarosemartin/spring-media/anomalous_obs
-# 3 Feb 2025
+# 4 Feb 2025
 
 library(rnpn)
 library(dplyr)
 library(stringr)
 library(ggplot2)
+library(scales) # To make integer axis labels
 library(sf)
 library(terra)
 library(tidyterra)
 library(elevatr)
-library(tigris)
-options(tigris_class = "sf")
+
+# Only needed if us_states shapefile not already present in resources folder
+  # library(rnaturalearth) 
 
 # This code identifies anomalous observations of plants in the current year 
 # compared to the long term record (2009-XXXX). First observation date in 
@@ -36,13 +38,18 @@ lowerq <- 0.05
 
 # Colors...
 
-# Get states layer from tigris package ----------------------------------------#
+# Get states layer ------------------------------------------------------------#
 
-states <- states()
-states <- vect(states)
-states <- terra::project(states, "epsg:4326")
-states <- states[, "STUSPS"]
-##TODO: Save layer in project?
+states_shp <- "resources/us_states.shp"
+
+if (!file.exists(states_shp)) {
+  library(rnaturalearth)
+  states <- rnaturalearth::ne_states(country = "united states of america", 
+                                     returnclass = "sv")
+  states <- states[, "postal"]
+} else {
+  states <- terra::vect(states_shp)
+}
 
 # Helper calls ----------------------------------------------------------------#
 
@@ -52,11 +59,13 @@ species <- npn_species()
 # Get phenophase classes
 phenoclasses <- npn_pheno_classes() %>% data.frame()
 head(phenoclasses, 13)
+
+# Select phenophase classes we're interested in
+pheno_class_ids <- c(1, 3, 6, 7)
   # 1: initial shoot/leaf growth
   # 3: leaves/needles
   # 6: flowers/cones
   # 7: open flowers/cones 
-pheno_class_ids <- c(1, 3, 6, 7)
 
 # Note: for this script, not going to differentiate among phenophases in 
 # each phenophase class. Mostly phenophases differ among species or functional
@@ -99,10 +108,12 @@ current <- current_dl %>%
 current <- current %>%
   filter(common_name != "'ohi'a lehua")
 
-# Remove observations with conflicts or those without a prior no
+# Remove observations with conflicts or those without a prior no in last 30 days
 current <- current %>%
   filter(is.na(flag)) %>%
-  filter(!is.na(prior_no))
+  filter(!is.na(prior_no)) %>%
+  filter(prior_no <= 30) %>%
+  select(-flag)
 
 # Keep only first observation of individual for a phenophase in a year
 current <- current %>%
@@ -114,10 +125,10 @@ current <- current %>%
 states48 <- state.abb[! state.abb %in% c("AK", "HI")]
 state_fill <- filter(current, is.na(state)) %>%
   select(site_id, lon, lat) %>%
-  distinct() 
+  distinct()
 state_fillv <- vect(state_fill, crs = "epsg:4326")
 state_new <- terra::extract(states, state_fillv)
-state_fill <- cbind(state_fill, state_new = state_new$STUSPS)
+state_fill <- cbind(state_fill, state_new = state_new$postal)
 current <- current %>%
   left_join(select(state_fill, site_id, state_new), by = "site_id") %>%
   mutate(state = ifelse(!is.na(state), state, state_new)) %>%
@@ -140,14 +151,14 @@ current <- current %>%
   mutate(elev = ifelse(!is.na(elev), elev, elev_new)) %>%
   select(-elev_new)
 
-# Check which phenophases, functional groups have sufficient data
+# Check which phenophases, functional groups have data
 count(current, pheno_class_id)
 count(current, pheno_class_id, func_type)
   # Cactus, deciduous broadleaf, deciduous conifer, drought deciduous broadleaf,
   # evergreen broadleaf, evergreen conifer, forb, graminoid, 
   # semi-evergreen broadleaf, semi-evergreen forb
 
-# Extract first observations of the year and species list
+# Extract first observations of the year
 current <- current %>%
   arrange(id, pheno_class_id, first_yes) %>%
   distinct(id, pheno_class_id, .keep_all = TRUE)
@@ -210,10 +221,10 @@ prior <- prior %>%
 # Fill in state or elevation where needed
 state_fill <- filter(prior, is.na(state)) %>%
   select(site_id, lon, lat) %>%
-  distinct() 
+  distinct()
 state_fillv <- vect(state_fill, crs = "epsg:4326")
 state_new <- terra::extract(states, state_fillv)
-state_fill <- cbind(state_fill, state_new = state_new$STUSPS)
+state_fill <- cbind(state_fill, state_new = state_new$postal)
 prior <- prior %>%
   left_join(select(state_fill, site_id, state_new), by = "site_id") %>%
   mutate(state = ifelse(!is.na(state), state, state_new)) %>%
@@ -360,16 +371,15 @@ for (phc in pheno_class_ids) {
 
 radius <- 50
 
-current_orig <- current
-
-rm(quantiles_r)
-rm(quantiles_temp)
-rm(prior_temp)
-rm(prior_plot_r)
-current <- current_orig
-current$n_obs_r <- NA
-current$n_indiv_r <- NA
-current$n_yrs_r <- NA
+# current_orig <- current
+# rm(quantiles_r)
+# rm(quantiles_temp)
+# rm(prior_temp)
+# rm(prior_plot_r)
+# current <- current_orig
+# current$n_obs_r <- NA
+# current$n_indiv_r <- NA
+# current$n_yrs_r <- NA
 
 for (i in 1:nrow(current)) {
   current1 <- current[i, ]
@@ -462,6 +472,7 @@ for (phc in pheno_class_ids) {
     ggplot(aes(x = first_yes)) +
     geom_histogram(bins = 60, fill = "steelblue3") +
     facet_wrap(~panel, scales = "free_y", ncol = 2) +
+    scale_y_continuous(breaks = scales::breaks_extended(Q = c(1, 5, 2, 4, 3))) +
     geom_vline(data = quantiles_reo_p,
                aes(xintercept = first_yes, linetype = eo), 
                color = "red") +
@@ -482,27 +493,24 @@ for (phc in pheno_class_ids) {
 # Not sure if we'll use stuff below -------------------------------------------#
 
 # Evaluate how much data we have at each site:
-  site_spp <- prior %>%
-    group_by(site_id, lat, lon, elev, common_name) %>%
+  site_spp_ph <- prior %>%
+    group_by(site_id, lat, lon, elev, common_name, pheno_class_id) %>%
     summarize(n_obs = n(),
               n_indiv = n_distinct(id),
               n_years = n_distinct(year),
               .groups = "keep") %>%
-    mutate(spp_site = paste0(common_name, "_", site_id)) %>%
+    mutate(spp_site_ph = paste0(common_name, "_", site_id, "_", pheno_class_id)) %>%
     data.frame()
   
-  yrs10 <- site_spp$spp_site[site_spp$n_years >= 10]
-  length(yrs10)
-  length(yrs10) / nrow(site_spp)
-  # Few site/species have >= 10 years
-  
-  obs10yrs5 <- site_spp$spp_site[site_spp$n_years >= 5 & site_spp$n_obs >= 10]
-  length(obs10yrs5)
-  length(obs10yrs5) / nrow(site_spp)
-  # Few site/species have >= 10 obs over 5+ years
-  
-  sum(paste0(current_ph$common_name, "_", current_ph$site) %in% yrs10)
-  # 6 (of 28) site-spp that have 10+ years of prior data
-  sum(paste0(current_ph$common_name, "_", current_ph$site) %in% obs10yrs5)
-  # 12 (of 28) site-spp that have 10+ obs over 5+ years of prior data
-  
+  # Calculate proportion of site-species combos that have 5/10 years of data for 
+  # each phenophase class
+  site_spp_ph %>%
+    group_by(pheno_class_id) %>%
+    summarize(n_sites = n_distinct(site_id),
+              # Number of sites with 10+ years of data
+              n_sites_10 = n_distinct(site_id[n_years >= 10]),
+              # Number of sites with 5+ years and 10+ observations
+              n_sites_5_10 = n_distinct(site_id[n_years >= 5 & n_obs >= 10])) %>%
+    mutate(prop_sites_10 = n_sites_10 / n_sites,
+           prop_sites_5_10 = n_sites_5_10 / n_sites) %>%
+    data.frame()
