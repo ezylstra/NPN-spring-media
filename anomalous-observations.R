@@ -5,6 +5,7 @@
 
 library(rnpn)
 library(dplyr)
+library(lubridate)
 library(stringr)
 library(ggplot2)
 library(scales) # To make integer axis labels
@@ -20,7 +21,7 @@ library(elevatr)
 # compared to the long term record (2009-XXXX). First observation date in 
 # current year is compared to the distribution of dates from prior years. Early 
 # (lower than Xth percentile) and outliers (earlier than 1.5x the IQR) are 
-# flagged and plotted
+# flagged.
 
 # Need individual phenometrics for current year
 # Need individual phenometrics for prior years (for current year species)
@@ -36,12 +37,46 @@ prior_years <- 2009:(year - 1)
 # Define early observations (below X percentile)
 lowerq <- 0.05
 
-# Colors...
+# Logical indicating whether to denote Tukey outliers in addition to early 
+# observations (those below X percentile) in figures and maps
+outliers <- FALSE
+
+# Set minimum number of years and observations needed in prior years to 
+# evaluate whether a current observation is anomalous
+min_yrs <- 8
+min_obs <- 20
+
+# Set radius (in km) defining region within which to extract prior observations
+# for comparison
+radius <- 100
+
+# Set elevational buffer (in m) defining band within which to extract prior
+# observations for comparison
+elev_buffer <- 1000
+
+# Set mapping parameters ------------------------------------------------------#
+
+# Set date to extract AGDD anomalies (for map). If don't want today, then set
+# agdd_date to desired date.
+agdd_today <- TRUE
+if (!agdd_today) {
+  agdd_date <- ymd("2025-02-03")
+}
+
+# Define breaks that will be used to delineate areas cooler/warmer than 30-year
+# normals. Breaks = AGDD anomolies on agdd_date.
+agdd_breaks <- c(-2000, -40, 40, 2000)
+
+# Colors for map (blue = cooler, offwhite = normal, orange = warmer)
+cw_cols <- c("#6fa8d6", "#f7f0da", "#fa824d")
+# plot(1:3, rep(1, 3), pch = 19, cex = 5, col = cols)
 
 # Get states layer ------------------------------------------------------------#
 
+# File location
 states_shp <- "resources/us_states.shp"
 
+# If file exists, load it. Otherwise download it first.
 if (!file.exists(states_shp)) {
   library(rnaturalearth)
   states <- rnaturalearth::ne_states(country = "united states of america", 
@@ -54,11 +89,11 @@ if (!file.exists(states_shp)) {
 # Helper calls ----------------------------------------------------------------#
 
 # Get species IDs
-species <- npn_species()
+# species <- npn_species()
 
 # Get phenophase classes
 phenoclasses <- npn_pheno_classes() %>% data.frame()
-head(phenoclasses, 13)
+# head(phenoclasses, 13)
 
 # Select phenophase classes we're interested in
 pheno_class_ids <- c(1, 3, 6, 7)
@@ -137,8 +172,6 @@ current <- current %>%
   filter(state %in% states48) 
 
 # Some observations missing elevation. Will fill in using the elevatr package
-##TODO: move later in script since only needed if using elevation to filter
-## observations in prior years?
 elev_fill <- filter(current, is.na(elev)) %>%
   distinct(site_id, lat, lon) %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
@@ -244,6 +277,204 @@ prior <- prior %>%
   mutate(elev = ifelse(!is.na(elev), elev, elev_new)) %>%
   select(-elev_new)
 
+# write.csv(current, "resources/current_20250204.csv", row.names = FALSE)
+# write.csv(prior, "resources/prior_20250204.csv", row.names = FALSE)
+
+# Compare current year observations with distribution of first observation dates
+# for plants within xx km and xx m elevation ----------------------------------#
+
+current <- read.csv("resources/current_20250204.csv")
+prior <- read.csv("resources/prior_20250204.csv")
+
+current$n_obs_r <- NA
+current$n_indiv_r <- NA
+current$n_yrs_r <- NA
+
+for (i in 1:nrow(current)) {
+  
+  current1 <- current[i, ]
+  
+  # Get locations for all observations of that species, phenophase
+  locs <- prior %>%
+    filter(common_name == current1$common_name, 
+           pheno_class_id == current1$pheno_class_id) %>%
+    select(site_id, lat, lon) %>%
+    distinct()
+  
+  # Calculate distance between 2025 plant and all others
+  dists <- terra::distance(x = as.matrix(current1[,c("lon", "lat")]),
+                           y = as.matrix(locs[,c("lon", "lat")]), 
+                           lonlat = TRUE,
+                           unit = "km")
+  locs_r <- locs[which(dists <= radius), ] %>%
+    mutate(withinr = 1)
+  
+  # Extract prior observations within radius and elevational band
+  prior_r <- prior %>%
+    left_join(select(locs_r, site_id, withinr), by = "site_id") %>%
+    filter(withinr == 1) %>%
+    filter(common_name == current1$common_name) %>%
+    filter(pheno_class_id == current1$pheno_class_id) %>%
+    filter(elev > (current1$elev - elev_buffer) & elev < (current1$elev + elev_buffer))
+  
+  # Add sample size info (for region defined by loc, elev) to current dataframe
+  current$n_obs_r[i] <- nrow(prior_r)
+  current$n_indiv_r[i] <- n_distinct(prior_r$id)
+  current$n_yrs_r[i] <- n_distinct(prior_r$year)
+  
+  if (current$n_obs_r[i] < min_obs | current$n_yrs_r[i] < min_yrs) {next}
+  
+  # Create dataframe with distributional summaries from prior years for 
+  # current-year observations that have sufficient data in prior years 
+  quants_temp <- data.frame(indiv = paste0(current1$common_name, "_", current1$id), 
+                            common_name = current1$common_name,
+                            site_id = current1$site_id,
+                            lon = current1$lon,
+                            lat = current1$lat, 
+                            state = current1$state,
+                            id = current1$id, 
+                            pheno_class_id = current1$pheno_class_id,
+                            first_yes = current1$first_yes,
+                            min = min(prior_r$first_yes),
+                            qearly = quantile(prior_r$first_yes, lowerq),
+                            q0.25 = quantile(prior_r$first_yes, 0.25),
+                            q0.75 = quantile(prior_r$first_yes, 0.75),
+                            IQR = IQR(prior_r$first_yes)) %>%
+    mutate(whisker = q0.25 - 1.5 * IQR,
+           outlier_threshold = ifelse(whisker < min, min, whisker),
+           early = ifelse(first_yes < qearly, 1, 0),
+           outlier = ifelse(first_yes < outlier_threshold, 1, 0))
+  
+  if (exists("quants_r")) {
+    quants_r <- rbind(quants_r, quants_temp)
+  } else {
+    quants_r <- quants_temp
+  }
+  
+  if (quants_temp$early == 1 | quants_temp$outlier == 1) {
+    # Create prior dataframe for ggplot
+    prior_temp <- prior_r %>%
+      select(common_name, func_type, pheno_class_id, site_id, lat, lon, elev, 
+             state, year, first_yes) %>%
+      mutate(indiv = quants_temp$indiv) %>%
+      mutate(panel = paste0(indiv, " (", quants_temp$state, ")"))
+      
+    if (exists("prior_plot_r")) {
+      prior_plot_r <- rbind(prior_plot_r, prior_temp)
+    } else {
+      prior_plot_r <- prior_temp
+    }
+  }
+}  
+
+# Extract just early/outlier observations
+quants_r_eo <- quants_r %>%
+  filter(early == 1 | outlier == 1) %>%
+  select(indiv, common_name, state, site_id, pheno_class_id, 
+         first_yes, min, qearly, q0.25, q0.75, early, outlier) %>%
+  mutate(panel =  paste0(indiv, " (", state, ")"),
+         eo = ifelse(outlier == 1, "Outlier", "Early"),
+         eo = factor(eo, levels = c("Early", "Outlier")))
+
+# Loop through phenophase classes
+for (phc in pheno_class_ids) {
+  
+  quants_r_p <- filter(quants_r_eo,  pheno_class_id == phc)
+  prior_plot_r_p <- filter(prior_plot_r, pheno_class_id == phc)
+
+  phc_name <- paste0(phenoclasses$name[phc], ", first observation of the year")
+  
+  plot_temp <- prior_plot_r_p %>%
+    ggplot(aes(x = first_yes)) +
+    geom_histogram(bins = 60, fill = "steelblue3") +
+    facet_wrap(~panel, scales = "free_y", ncol = 2) +
+    scale_y_continuous(breaks = scales::breaks_extended(Q = c(1, 5, 2, 4, 3)))
+  
+  if (outliers) {
+    plot_temp <- plot_temp +
+      geom_vline(data = quants_r_p,
+                 aes(xintercept = first_yes, linetype = eo),
+                 color = "red") +
+      scale_linetype_manual(values = c("dashed", "solid")) +
+      labs(x = "Day of year", y = "Count", title = phc_name,
+           linetype = paste0(year, " observations")) +
+      theme_bw() +
+      theme(legend.position = "bottom")
+  } else {
+    plot_temp <- plot_temp +
+      geom_vline(data = quants_r_p, aes(xintercept = first_yes), 
+                 color = "red") +
+      labs(x = "Day of year", y = "Count", title = phc_name) +
+      theme_bw()
+  }
+  
+  # Save ggplot objects with name = plot_r_Phenophase class (eg, plot_r1)
+  assign(paste0("plot_r_", phc), plot_temp)
+}
+
+# Print ggplot object for each phenophase class
+# for (phc in pheno_class_ids) {
+#   print(get(paste0("plot_r_", phc)))
+# }
+
+# Create map with early observations of initial vegetative growth (1) and open 
+# flowers (7) 
+library(leaflet)
+
+# Acquire raster with forecasted AGDD anomalies (in F, with 32-deg base)
+if (agdd_today) {
+  agdd_date <- today()
+}
+
+agdd_anom <- npn_download_geospatial(coverage_id = "gdd:agdd_anomaly", 
+                                     date = agdd_date)  
+
+# Prepare binned color palette
+pal <- colorBin (palette = cw_cols, 
+                 domain = agdd_anom, 
+                 bins = agdd_breaks,
+                 na.color = "transparent")
+# Set background color
+backg <- htmltools::tags$style(".leaflet-container { background: white; }" )
+
+# Create flower icon
+iflower <- makeIcon(iconUrl = "resources/flower.ico",
+                    iconWidth = 15, iconHeight = 15)
+# Create leaf icon
+ileaf <- makeIcon(iconUrl = "resources/leaf.png",
+                  iconWidth = 20, iconHeight = 20)
+
+states48v <- terra::subset(states, !states$postal %in% c("HI", "AK"))
+states48v <- st_as_sf(states48v)
+
+radius_m <- radius * 1000
+
+early1 <- quants_r_eo %>%
+  filter(early == 1 & pheno_class_id == 1) %>%
+  left_join(select(current, site_id, lon, lat) %>% distinct, by = "site_id")
+
+early7 <- quants_r_eo %>%
+  filter(early == 1 & pheno_class_id == 7) %>%
+  left_join(select(current, site_id, lon, lat) %>% distinct, by = "site_id")
+
+# Maps observations that are earlier than 95% of all previous first-of-the-year 
+# observations within 100-km radius and 500 m elevation:
+map <- leaflet(early1) %>%
+  addRasterImage(agdd_anom, colors = pal, opacity = 0.6) %>%
+  addPolygons(data = states48v, color = "gray", weight = 1, fill = FALSE) %>%
+  addMarkers(lng = ~early1$lon, lat = ~early1$lat, icon = ileaf) %>%
+  addCircles(lng = ~early1$lon, lat = ~early1$lat, radius = ~radius_m, 
+             color = "green", weight = 1, fill = FALSE) %>%
+  addMarkers(lng = ~early7$lon, lat = ~early7$lat, icon = iflower) %>%
+  addCircles(lng = ~early7$lon, lat = ~early7$lat, radius = ~radius_m,
+             color = "purple", weight = 1, fill = FALSE) %>%
+  htmlwidgets::prependContent(backg)
+map
+
+# Create table with early and outlier observations for all phenophase classes
+
+
+
 # Compare current year observations with distribution of first observation dates
 # for plants in the same state ------------------------------------------------#
 
@@ -265,10 +496,9 @@ state_spp_n <- prior_st %>%
             n_years = n_distinct(year),
             .groups = "keep") %>%
   data.frame()
-# Only evaluate 2025 anomalies for state-species combinations that have 8+
-# years of data and 20+ observations
-min_yrs <- 8
-min_obs <- 20
+
+# Only evaluate 2025 anomalies for state-species combinations that have
+# sufficient observations in prior years
 state_spp_n <- state_spp_n %>%
   filter(n_years >= min_yrs & n_obs >= min_obs)
 
@@ -277,17 +507,16 @@ prior_st <- prior_st %>%
 quantiles_st <- prior_st %>%
   group_by(state_spp_ph) %>%
   summarize(min = min(first_yes),
-            q0.05 = quantile(first_yes, 0.05),
+            qearly = quantile(first_yes, lowerq),
             q0.25 = quantile(first_yes, 0.25),
             q0.75 = quantile(first_yes, 0.75),
-            q0.95 = quantile(first_yes, 0.95),
             IQR = IQR(first_yes)) %>%
   data.frame() %>%
   mutate(whisker = q0.25 - 1.5 * IQR,
          outlier_threshold = ifelse(whisker < min, min, whisker))
 current_st <- current %>%
   left_join(quantiles_st, by = "state_spp_ph") %>%
-  mutate(early = ifelse(first_yes < q0.05, 1, 0),
+  mutate(early = ifelse(first_yes < qearly, 1, 0),
          outlier = ifelse(first_yes < outlier_threshold, 1, 0)) %>%
   # Remove state_spp_ph combinations that don't have enough data in prior years
   filter(!is.na(early))
@@ -302,7 +531,7 @@ current_st %>%
 prior %>%
   filter(state_spp == "CA_coyotebrush" & pheno_class_id == 7) %>%
   ggplot(aes(first_yes)) +
-    geom_histogram(bins = 60)
+  geom_histogram(bins = 60)
 # Coyotebrush histogram highlights why boxplots might be deceiving. It's a 
 # multimodal distribution, with the highest frequency in fall, but a distinct
 # peak at the beginning of the year. 
@@ -311,7 +540,7 @@ prior %>%
 current_steo <- current_st %>%
   filter(early == 1 | outlier == 1) %>%
   select(common_name, state, state_spp, pheno_class_id, state_spp_ph, func_type, 
-         first_yes, min, q0.05, q0.25, q0.75, early, outlier) %>%
+         first_yes, min, qearly, q0.25, q0.75, early, outlier) %>%
   mutate(panel = paste0(common_name, " (", state, ")"),
          eo = ifelse(outlier == 1, "Outlier", "Early"),
          eo = factor(eo, levels = c("Early", "Outlier")))
@@ -364,128 +593,6 @@ for (phc in pheno_class_ids) {
 
 for (phc in pheno_class_ids) {
   print(get(paste0("plot_", phc)))
-}
-
-# Compare current year observations with distribution of first observation dates
-# for plants within XX-km radius (and within xx m elevation?) -----------------#
-
-radius <- 50
-
-# current_orig <- current
-# rm(quantiles_r)
-# rm(quantiles_temp)
-# rm(prior_temp)
-# rm(prior_plot_r)
-# current <- current_orig
-# current$n_obs_r <- NA
-# current$n_indiv_r <- NA
-# current$n_yrs_r <- NA
-
-for (i in 1:nrow(current)) {
-  current1 <- current[i, ]
-  # Get locations for observations of that species, phenophase
-  locs <- prior %>%
-    filter(common_name == current1$common_name, 
-           pheno_class_id == current1$pheno_class_id) %>%
-    select(site_id, lat, lon) %>%
-    distinct()
-  # Calculate distance between 2025 plant and all others
-  dists <- terra::distance(x = as.matrix(current1[,c("lon", "lat")]),
-                           y = as.matrix(locs[,c("lon", "lat")]), 
-                           lonlat = TRUE,
-                           unit = "km")
-  locs_r <- locs[which(dists <= radius), ] %>%
-    mutate(withinr = 1)
-  
-  prior_r <- prior %>%
-    left_join(select(locs_r, site_id, withinr), by = "site_id") %>%
-    filter(withinr == 1) %>%
-    filter(common_name == current1$common_name) %>%
-    filter(pheno_class_id == current1$pheno_class_id)
-  
-  current$n_obs_r[i] <- nrow(prior_r)
-  current$n_indiv_r[i] <- n_distinct(prior_r$id)
-  current$n_yrs_r[i] <- n_distinct(prior_r$year)
-  
-  if (current$n_obs_r[i] <= min_obs | current$n_yrs_r[i] < min_yrs) {next}
-  
-  quantiles_temp <- data.frame(indiv = paste0(current1$common_name, "_", current1$id), 
-                               common_name = current1$common_name,
-                               site_id = current1$site_id,
-                               lon = current1$lon,
-                               lat = current1$lat, 
-                               state = current1$state,
-                               id = current1$id, 
-                               pheno_class_id = current1$pheno_class_id,
-                               first_yes = current1$first_yes,
-                               min = min(prior_r$first_yes),
-                               q0.05 = quantile(prior_r$first_yes, 0.05),
-                               q0.25 = quantile(prior_r$first_yes, 0.25),
-                               q0.75 = quantile(prior_r$first_yes, 0.75),
-                               q0.95 = quantile(prior_r$first_yes, 0.95),
-                               IQR = IQR(prior_r$first_yes)) %>%
-    mutate(whisker = q0.25 - 1.5 * IQR,
-           outlier_threshold = ifelse(whisker < min, min, whisker),
-           early = ifelse(first_yes < q0.05, 1, 0),
-           outlier = ifelse(first_yes < outlier_threshold, 1, 0))
-  
-  if (exists("quantiles_r")) {
-    quantiles_r <- rbind(quantiles_r, quantiles_temp)
-  } else {
-    quantiles_r <- quantiles_temp
-  }
-  
-  if (quantiles_temp$early == 1 | quantiles_temp$outlier == 1) {
-    # Create prior dataframe for ggplot
-    prior_temp <- prior_r %>%
-      select(common_name, func_type, pheno_class_id, site_id, lat, lon, state,
-             year, first_yes) %>%
-      mutate(indiv = quantiles_temp$indiv) %>%
-      mutate(panel = paste0(indiv, " (", quantiles_temp$state, ")"))
-      
-    if (exists("prior_plot_r")) {
-      prior_plot_r <- rbind(prior_plot_r, prior_temp)
-    } else {
-      prior_plot_r <- prior_temp
-    }
-  }
-}  
-
-# Extract just early/outlier observations
-quantiles_reo <- quantiles_r %>%
-  filter(early == 1 | outlier == 1) %>%
-  select(indiv, common_name, state, site_id, pheno_class_id, 
-         first_yes, min, q0.05, q0.25, q0.75, early, outlier) %>%
-  mutate(panel =  paste0(indiv, " (", state, ")"),
-         eo = ifelse(outlier == 1, "Outlier", "Early"),
-         eo = factor(eo, levels = c("Early", "Outlier")))
-
-# Loop through phenophase classes
-for (phc in pheno_class_ids) {
-  
-  quantiles_reo_p <- filter(quantiles_reo,  pheno_class_id == phc)
-  prior_plot_r_p <- filter(prior_plot_r, pheno_class_id == phc)
-
-  phc_name <- paste0(phenoclasses$name[phc], ", first observation of the year")
-  
-  plot_temp <- prior_plot_r_p %>%
-    ggplot(aes(x = first_yes)) +
-    geom_histogram(bins = 60, fill = "steelblue3") +
-    facet_wrap(~panel, scales = "free_y", ncol = 2) +
-    scale_y_continuous(breaks = scales::breaks_extended(Q = c(1, 5, 2, 4, 3))) +
-    geom_vline(data = quantiles_reo_p,
-               aes(xintercept = first_yes, linetype = eo), 
-               color = "red") +
-    scale_linetype_manual(values = c("dashed", "solid")) +
-    labs(x = "Day of year", y = "Count", title = phc_name,
-         linetype = paste0(year, " observations")) +
-    theme_bw() +
-    theme(legend.position = "bottom")
-  assign(paste0("plot_r_", phc), plot_temp)
-}
-
-for (phc in pheno_class_ids) {
-  print(get(paste0("plot_r_", phc)))
 }
 
 
