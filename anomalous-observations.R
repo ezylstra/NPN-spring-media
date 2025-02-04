@@ -343,7 +343,7 @@ for (i in 1:nrow(current)) {
     mutate(whisker = q0.25 - 1.5 * IQR,
            outlier_threshold = ifelse(whisker < min, min, whisker),
            early = ifelse(first_yes < qearly, 1, 0),
-           outlier = ifelse(first_yes < outlier_threshold, 1, 0))
+           outlier = ifelse(first_yes <= outlier_threshold, 1, 0))
   
   if (exists("quants_r")) {
     quants_r <- rbind(quants_r, quants_temp)
@@ -470,10 +470,46 @@ map <- leaflet(early1) %>%
              color = "purple", weight = 1, fill = FALSE) %>%
   htmlwidgets::prependContent(backg)
 map
+#TODO: figure out what's going on if we zoom out.
 
 # Create table with early and outlier observations for all phenophase classes
+# ID, species, func type, state, lat, lon, elev, first yes, no. previous obs,
+# no. previous yrs, early(y/n), outlier (y/n), earliest ever (tied or beat 
+# previous)
+current_join <- current %>%
+  mutate(indiv = paste0(common_name, "_", id)) %>%
+  select(common_name, indiv, id, pheno_class_id, lat, lon, elev, func_type,
+         n_obs_r, n_yrs_r)
 
+eo_table <- quants_r_eo %>%
+  select(indiv, state, pheno_class_id, first_yes, min, early, outlier) %>%
+  left_join(current_join, by = c("indiv", "pheno_class_id")) %>%
+  mutate(earliest = ifelse(first_yes <= min, 1, 0)) %>%
+  select(pheno_class_id, common_name, func_type, id, state, lat, lon, elev, 
+         first_yes, early, earliest, outlier, n_yrs_r, n_obs_r) %>%
+  rename(Phenoclass = pheno_class_id,
+         Species = common_name,
+         FunctionalType = func_type,
+         Individual = id, 
+         State = state,
+         Latitude = lat,
+         Longitude = lon,
+         Elev = elev, 
+         FirstYes = first_yes,
+         Early = early,
+         Earliest = earliest,
+         Outlier = outlier,
+         PriorYears = n_yrs_r,
+         PriorObs = n_obs_r) %>%
+  arrange(Phenoclass, FunctionalType, Species, State, FirstYes)
 
+eo_table %>%
+  filter(Phenoclass == 1) %>%
+  select(-c(Phenoclass, Individual))
+
+eo_table %>%
+  filter(Phenoclass == 7) %>%
+  select(-c(Phenoclass, Individual))
 
 # Compare current year observations with distribution of first observation dates
 # for plants in the same state ------------------------------------------------#
