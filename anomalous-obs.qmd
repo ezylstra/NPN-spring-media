@@ -1,19 +1,34 @@
-# Anomalous observations script
-# Originally developed by A. Rosemartin and T. Crimmins
-# Adapted from https://github.com/alyssarosemartin/spring-media/anomalous_obs
-# 4 Feb 2025
+---
+title: "Anomalous spring observations, 2025"
+date: 2/5/2025
+format:
+  html:
+    page-layout: full
+editor: visual
+---
 
-library(rnpn)
-library(dplyr)
-library(lubridate)
-library(stringr)
-library(ggplot2)
-library(scales) # To make integer axis labels
-library(sf)
-library(terra)
-library(tidyterra)
-library(elevatr)
-library(leaflet)
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      error = FALSE, 
+                      warning = FALSE, 
+                      message = FALSE)
+```
+
+
+```{r, results = "hide"}
+
+suppressMessages(library(rnpn))
+suppressMessages(library(dplyr))
+suppressMessages(library(lubridate))
+suppressMessages(library(stringr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(scales)) # To make integer axis labels
+suppressMessages(library(sf))
+suppressMessages(library(terra))
+suppressMessages(library(tidyterra))
+suppressMessages(library(elevatr))
+suppressMessages(library(leaflet))
+suppressMessages(library(kableExtra))
 
 # Only needed if us_states shapefile not already present in resources folder
   # library(rnaturalearth) 
@@ -38,7 +53,7 @@ prior_years <- 2009:(year - 1)
 # Define early observations (below X percentile)
 lowerq <- 0.05
 
-# Logical indicating whether to denote Tukey outliers in addition to early 
+# Logical indicating whether to identify Tukey outliers in addition to early 
 # observations (those below X percentile) in figures and maps
 outliers <- FALSE
 
@@ -62,6 +77,8 @@ elev_buffer <- 1000
 agdd_today <- TRUE
 if (!agdd_today) {
   agdd_date <- ymd("2025-02-03")
+} else {
+  agdd_date <- today()
 }
 
 # Define breaks that will be used to delineate areas cooler/warmer than 30-year
@@ -109,13 +126,14 @@ pheno_class_ids <- c(1, 3, 6, 7)
 
 # Aquire, format phenometric data in current year -----------------------------#
 
-current_dl <- npn_download_individual_phenometrics(
+  current_dl <- npn_download_individual_phenometrics(
   request_source = 'erinz', 
   years = year,
   pheno_class_ids = pheno_class_ids, 
   additional_fields = c("observed_status_conflict_flag",
                         "species_functional_type")
 )
+
 
 # Simplify data (remove unnecessary columns; replace -9999 with NA)
 current <- current_dl %>%
@@ -278,14 +296,8 @@ prior <- prior %>%
   mutate(elev = ifelse(!is.na(elev), elev, elev_new)) %>%
   select(-elev_new)
 
-# write.csv(current, "resources/current_20250204.csv", row.names = FALSE)
-# write.csv(prior, "resources/prior_20250204.csv", row.names = FALSE)
-
 # Compare current year observations with distribution of first observation dates
 # for plants within xx km and xx m elevation ----------------------------------#
-
-# current <- read.csv("resources/current_20250204.csv")
-# prior <- read.csv("resources/prior_20250204.csv")
 
 current$n_obs_r <- NA
 current$n_indiv_r <- NA
@@ -397,16 +409,18 @@ for (phc in pheno_class_ids) {
                  aes(xintercept = first_yes, linetype = eo),
                  color = "red") +
       scale_linetype_manual(values = c("dashed", "solid")) +
-      labs(x = "Day of year", y = "Count", title = phc_name,
+      labs(x = "Day of year", y = "Count",
            linetype = paste0(year, " observations")) +
       theme_bw() +
-      theme(legend.position = "bottom")
+      theme(legend.position = "bottom",
+            text = element_text(size = 12))
   } else {
     plot_temp <- plot_temp +
       geom_vline(data = quants_r_p, aes(xintercept = first_yes), 
                  color = "red") +
-      labs(x = "Day of year", y = "Count", title = phc_name) +
-      theme_bw()
+      labs(x = "Day of year", y = "Count") +
+      theme_bw() +
+      theme(text = element_text(size = 12))
   }
   
   # Save ggplot objects with name = plot_r_Phenophase class (eg, plot_r1)
@@ -418,23 +432,146 @@ for (phc in pheno_class_ids) {
 #   print(get(paste0("plot_r_", phc)))
 # }
 
-# Create map with early observations
+# Create table with early and outlier observations for all phenophase classes
+# ID, species, func type, state, lat, lon, elev, first yes, no. previous obs,
+# no. previous yrs, early(y/n), outlier (y/n), earliest ever (tied or beat 
+# previous)
+current_join <- current %>%
+  mutate(indiv = paste0(common_name, "_", id)) %>%
+  select(common_name, indiv, id, pheno_class_id, lat, lon, elev, func_type,
+         n_obs_r, n_yrs_r)
+
+eo_table <- quants_r_eo %>%
+  select(indiv, state, pheno_class_id, first_yes, min, early, outlier) %>%
+  left_join(current_join, by = c("indiv", "pheno_class_id")) %>%
+  mutate(early = ifelse(early == 1, "Yes", "No"),
+         outlier = ifelse(outlier == 1, "Yes", "No"), 
+         earliest = ifelse(first_yes <= min, "Yes", "No"),
+         firstyes = parse_date_time(x = paste(year, first_yes), 
+                                              orders = "yj")) %>%
+  mutate(func_type2 = case_when(
+    func_type == "Deciduous broadleaf" ~ "DB",
+    func_type == "Deciduous conifer" ~ "DC",
+    func_type == "Drought deciduous broadleaf" ~ "DDB",
+    func_type == "Evergreen broadleaf" ~ "EB",
+    func_type == "Evergreen conifer" ~ "EC",
+    func_type == "Graminoid" ~ "Gram",
+    func_type == "Semi-evergreen broadleaf" ~ "SEB",
+    func_type == "Forb" ~ "Forb",
+    .default = NA
+  )) %>%
+  select(pheno_class_id, common_name, func_type, id, state, lat, lon, elev, 
+         first_yes, firstyes, early, earliest, outlier, n_yrs_r, n_obs_r) %>%
+  arrange(pheno_class_id, func_type, common_name, state, first_yes) %>%
+  select(-first_yes)
+
+```
+
+We identified observations of plant phenophases in Nature's Notebook (NN) that were earlier than normal in 2025. We compared 2025 observations with observations collected in 2009-2024 for plants within `{r} radius` km and within `{r} elev_buffer` m elevation of the plant observed in 2025. We limited analyses to phenophases in four phenophase classes: initial vegetative growth (class 1), leaves or needles (3), flowers or cones (6), and open flowers or cones (7), and only evaluated whether an observation was early if there were at least 20 observations for that species and phenophase over 8 or more years between 2009 and 2024.
+
+We classified a 2025 observation as ***early*** if it was earlier than 95% of first-of-year observations in 2009-2024, and as an ***outlier*** if it was a Tukey outlier (2025 observation earlier than Q1 - 1.5 \* IQR). We also noted if the observation was as early or earlier than the earliest date ever recorded in NN for that species, phenophase, and region (***earliest***).
+
+In the tables below, we list all of the 2025 observations that were considered early or an outlier by phenophase class. No. Prior Obs. (Yrs) lists the number of 2009-2024 observations (with the associated number of years) that were used to determine whether a 2025 observation was anomalous or not. Histograms displaying distribution of observations in prior years that were used to assess 2025 potential anomalies are at the bottom of the document
+
+#### Observations of initial vegetative growth
+
+```{r}
+
+outtable1 <- eo_table %>%
+  filter(pheno_class_id == 1) %>%
+  select(-pheno_class_id) %>%
+  mutate(firstyes = as.Date(firstyes)) %>%
+  mutate(lat = round(lat, 2),
+         lon = round(lon, 2),
+         numprior = paste0(n_obs_r, " (", n_yrs_r, ")")) %>%
+  select(-c(n_obs_r, n_yrs_r)) %>%
+  kbl(col.names = c("Species", "Functional type", "ID",
+                    "State", "Lat", "Lon", "Elev (m)",
+                    "Date", "Early", "Earliest", "Outlier", 
+                    "No. Prior Obs. (Yrs)"),
+    align = c("l", rep("c", 11))) %>%
+  kable_styling(full_width = FALSE, font_size = 11)
+outtable1
+```
+
+#### Observations of leaves or needles
+
+```{r}
+
+outtable3 <- eo_table %>%
+  filter(pheno_class_id == 3) %>%
+  select(-pheno_class_id) %>%
+  mutate(firstyes = as.Date(firstyes)) %>%
+  mutate(lat = round(lat, 2),
+         lon = round(lon, 2),
+         numprior = paste0(n_obs_r, " (", n_yrs_r, ")")) %>%
+  select(-c(n_obs_r, n_yrs_r)) %>%
+  kbl(col.names = c("Species", "Functional type", "ID",
+                    "State", "Lat", "Lon", "Elev (m)",
+                    "Date", "Early", "Earliest", "Outlier", 
+                    "No. Prior Obs. (Yrs)"),
+    align = c("l", rep("c", 11))) %>%
+  kable_styling(full_width = FALSE, font_size = 11)
+outtable3
+```
+
+#### Observations of flowers or cones
+
+```{r}
+
+outtable6 <- eo_table %>%
+  filter(pheno_class_id == 6) %>%
+  select(-pheno_class_id) %>%
+  mutate(firstyes = as.Date(firstyes)) %>%
+  mutate(lat = round(lat, 2),
+         lon = round(lon, 2),
+         numprior = paste0(n_obs_r, " (", n_yrs_r, ")")) %>%
+  select(-c(n_obs_r, n_yrs_r)) %>%
+  kbl(col.names = c("Species", "Functional type", "ID",
+                    "State", "Lat", "Lon", "Elev (m)",
+                    "Date", "Early", "Earliest", "Outlier", 
+                    "No. Prior Obs. (Yrs)"),
+    align = c("l", rep("c", 11))) %>%
+  kable_styling(full_width = FALSE, font_size = 11)
+outtable6
+```
+
+#### Observations of open flowers or cones
+
+```{r}
+
+outtable7 <- eo_table %>%
+  filter(pheno_class_id == 7) %>%
+  select(-pheno_class_id) %>%
+  mutate(firstyes = as.Date(firstyes)) %>%
+  mutate(lat = round(lat, 2),
+         lon = round(lon, 2),
+         numprior = paste0(n_obs_r, " (", n_yrs_r, ")")) %>%
+  select(-c(n_obs_r, n_yrs_r)) %>%
+  kbl(col.names = c("Species", "Functional type", "ID",
+                  "State", "Lat", "Lon", "Elev (m)",
+                  "Date", "Early", "Earliest", "Outlier", 
+                  "No. Prior Obs. (Yrs)"),
+    align = c("l", rep("c", 11))) %>%
+  kable_styling(full_width = FALSE, font_size = 11)
+outtable7
+```
+
+<br>
+
+**Map of early initial vegetative growth and open flower observations.** Green leaves denote early observations of initial vegetation growth and purple flowers denote early observations of open flowers or cones. Circles delineate the areas containing plants observed in prior years that were used for comparison. Blue shading indicates areas that were cooler than normal as of `{r} agdd_date` (\>`{r} abs(agdd_breaks[2])` deg F below 30-year normals for accumulated growing degree days with 32 deg F base); orange shading indicates areas that were warmer than normal as of `{r} agdd_date` (\>`{r} agdd_breaks[3]` deg F above 30-year normals).
+
+```{r}
 
 # Acquire raster with forecasted AGDD anomalies (in F, with 32-deg base)
-if (agdd_today) {
-  agdd_date <- today()
-}
-agdd_anom <- npn_download_geospatial(coverage_id = "gdd:agdd_anomaly", 
-                                     date = agdd_date)  
+agdd_anom <- npn_download_geospatial(coverage_id = "gdd:agdd_anomaly",
+                                     date = agdd_date)
 
 # Prepare binned color palette
-pal <- colorBin (palette = cw_cols, 
-                 domain = agdd_anom, 
+pal <- colorBin (palette = cw_cols,
+                 domain = agdd_anom,
                  bins = agdd_breaks,
                  na.color = "transparent")
-
-# Set background color
-backg <- htmltools::tags$style(".leaflet-container { background: white; }" )
 
 # Create flower icon
 iflower <- makeIcon(iconUrl = "resources/flower.ico",
@@ -465,197 +602,46 @@ map <- leaflet(early1, options = leafletOptions(minZoom = 3)) %>%
   addRasterImage(agdd_anom, colors = pal, opacity = 0.6) %>%
   addPolygons(data = states48v, color = "gray", weight = 1, fill = FALSE) %>%
   addMarkers(lng = ~early1$lon, lat = ~early1$lat, icon = ileaf) %>%
-  addCircles(lng = ~early1$lon, lat = ~early1$lat, radius = ~radius_m, 
+  addCircles(lng = ~early1$lon, lat = ~early1$lat, radius = ~radius_m,
              color = "green", weight = 1, fill = FALSE) %>%
   addMarkers(lng = ~early7$lon, lat = ~early7$lat, icon = iflower) %>%
   addCircles(lng = ~early7$lon, lat = ~early7$lat, radius = ~radius_m,
-             color = "purple", weight = 1, fill = FALSE) %>%
-  htmlwidgets::prependContent(backg)
+             color = "purple", weight = 1, fill = FALSE)
 map
+```
 
-# Create table with early and outlier observations for all phenophase classes
-# ID, species, func type, state, lat, lon, elev, first yes, no. previous obs,
-# no. previous yrs, early(y/n), outlier (y/n), earliest ever (tied or beat 
-# previous)
-current_join <- current %>%
-  mutate(indiv = paste0(common_name, "_", id)) %>%
-  select(common_name, indiv, id, pheno_class_id, lat, lon, elev, func_type,
-         n_obs_r, n_yrs_r)
+```{r}
+npanel1 <- n_distinct(prior_plot_r$panel[prior_plot_r$pheno_class_id == 1])
+npanel3 <- n_distinct(prior_plot_r$panel[prior_plot_r$pheno_class_id == 3])
+npanel6 <- n_distinct(prior_plot_r$panel[prior_plot_r$pheno_class_id == 6])
+npanel7 <- n_distinct(prior_plot_r$panel[prior_plot_r$pheno_class_id == 7])
+npanels <- c(npanel1, npanel3, npanel6, npanel7)
+hist_width <- 15
+hist_heights <- 2.25 * ceiling(npanels / 2)
+```
 
-eo_table <- quants_r_eo %>%
-  select(indiv, state, pheno_class_id, first_yes, min, early, outlier) %>%
-  left_join(current_join, by = c("indiv", "pheno_class_id")) %>%
-  mutate(early = ifelse(early == 1, "Yes", "No"),
-         outlier = ifelse(outlier == 1, "Yes", "No"), 
-         Earliest = ifelse(first_yes <= min, "Yes", "No"),
-         FirstYes = parse_date_time(x = paste(year, first_yes), 
-                                              orders = "yj")) %>%
-  select(pheno_class_id, common_name, func_type, id, state, lat, lon, elev, 
-         first_yes, FirstYes, early, Earliest, outlier, n_yrs_r, n_obs_r) %>%
-  rename(Phenoclass = pheno_class_id,
-         Species = common_name,
-         FunctionalType = func_type,
-         Individual = id, 
-         State = state,
-         Latitude = lat,
-         Longitude = lon,
-         Elevation = elev, 
-         Early = early,
-         Outlier = outlier,
-         NumPriorYears = n_yrs_r,
-         NumPriorObs = n_obs_r) %>%
-  arrange(Phenoclass, FunctionalType, Species, State, first_yes) %>%
-  select(-first_yes)
+<br> <br>
 
-# View anomalous open flower observations
-eo_table %>%
-  filter(Phenoclass == 7) %>%
-  select(-c(Phenoclass, Individual))
+**Initial vegetative growth.** Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early.
 
+```{r, fig.width = hist_width, fig.height = hist_heights[1]}
+plot_r_1
+```
 
-# Compare current year observations with distribution of first observation dates
-# for plants in the same state ------------------------------------------------#
+**Leaves or needles.** Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early.
 
-current <- current %>%
-  mutate(state_spp = paste0(state, "_", common_name),
-         state_spp_ph = paste0(state_spp, "_", pheno_class_id))
-prior <- prior %>%
-  mutate(state_spp = paste0(state, "_", common_name),
-         state_spp_ph = paste0(state_spp, "_", pheno_class_id))
+```{r, fig.width = hist_width, fig.height = hist_heights[2]}
+plot_r_3
+```
 
-# Identify early or outlier observations based on previous observations in 
-# same state
-prior_st <- prior %>%
-  filter(state_spp_ph %in% unique(current$state_spp_ph))
-state_spp_n <- prior_st %>%
-  group_by(state_spp, pheno_class_id, state_spp_ph) %>%
-  summarize(n_obs = n(),
-            n_indiv = n_distinct(id),
-            n_years = n_distinct(year),
-            .groups = "keep") %>%
-  data.frame()
+**Flowers or cones.** Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early.
 
-# Only evaluate 2025 anomalies for state-species combinations that have
-# sufficient observations in prior years
-state_spp_n <- state_spp_n %>%
-  filter(n_years >= min_yrs & n_obs >= min_obs)
+```{r, fig.width = hist_width, fig.height = hist_heights[3]}
+plot_r_6
+```
 
-prior_st <- prior_st %>%
-  filter(state_spp_ph %in% state_spp_n$state_spp_ph)
-quantiles_st <- prior_st %>%
-  group_by(state_spp_ph) %>%
-  summarize(min = min(first_yes),
-            qearly = quantile(first_yes, lowerq),
-            q0.25 = quantile(first_yes, 0.25),
-            q0.75 = quantile(first_yes, 0.75),
-            IQR = IQR(first_yes)) %>%
-  data.frame() %>%
-  mutate(whisker = q0.25 - 1.5 * IQR,
-         outlier_threshold = ifelse(whisker < min, min, whisker))
-current_st <- current %>%
-  left_join(quantiles_st, by = "state_spp_ph") %>%
-  mutate(early = ifelse(first_yes < qearly, 1, 0),
-         outlier = ifelse(first_yes < outlier_threshold, 1, 0)) %>%
-  # Remove state_spp_ph combinations that don't have enough data in prior years
-  filter(!is.na(early))
+**Open flowers or cones.** Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early.
 
-# Look at what's left
-current_st %>%
-  select(pheno_class_id, state_spp, func_type, first_yes, min, 
-         outlier_threshold, q0.25, q0.75, early, outlier) %>%
-  filter(early == 1 | outlier == 1) %>%
-  arrange(pheno_class_id, func_type, state_spp, first_yes)
-
-prior %>%
-  filter(state_spp == "CA_coyotebrush" & pheno_class_id == 7) %>%
-  ggplot(aes(first_yes)) +
-  geom_histogram(bins = 60)
-# Coyotebrush histogram highlights why boxplots might be deceiving. It's a 
-# multimodal distribution, with the highest frequency in fall, but a distinct
-# peak at the beginning of the year. 
-
-# Extract just early/outlier observations
-current_steo <- current_st %>%
-  filter(early == 1 | outlier == 1) %>%
-  select(common_name, state, state_spp, pheno_class_id, state_spp_ph, func_type, 
-         first_yes, min, qearly, q0.25, q0.75, early, outlier) %>%
-  mutate(panel = paste0(common_name, " (", state, ")"),
-         eo = ifelse(outlier == 1, "Outlier", "Early"),
-         eo = factor(eo, levels = c("Early", "Outlier")))
-
-# Loop through phenophase classes
-for (phc in pheno_class_ids) {
-  current_steo_p <- filter(current_steo,  pheno_class_id == phc)
-  current_eo_stspp <- sort(unique(current_steo_p$state_spp))
-  current_eo_spp <- str_split_i(current_eo_stspp, "_", 2)
-  current_eo_st <- str_split_i(current_eo_stspp, "_", 1)
-  
-  # Put prior data into better format for plotting
-  for (i in 1:length(current_eo_stspp)) {
-    prior_spp <- prior %>%
-      filter(common_name == current_eo_spp[i] & pheno_class_id == phc) %>%
-      select(common_name, state_spp, state, func_type, year, first_yes) %>%
-      mutate(group = "All") %>%
-      mutate(panel = paste0(current_eo_spp[i], " (", current_eo_st[i], ")"))
-    prior_stspp <- prior %>%
-      filter(state_spp == current_eo_stspp[i] & pheno_class_id == phc) %>%
-      select(common_name, state_spp, state, func_type, year, first_yes) %>%
-      mutate(group = "State") %>%
-      mutate(panel = paste0(current_eo_spp[i], " (", current_eo_st[i], ")"))
-    prior_plot_new <- rbind(prior_spp, prior_stspp)
-    if (i == 1) {
-      prior_plot <- prior_plot_new
-    } else {
-      prior_plot <- rbind(prior_plot, prior_plot_new)
-    }
-  }
-  
-  phc_name <- paste0(phenoclasses$name[phc], ", first observation of the year")
-  
-  plot_temp <- prior_plot %>%
-    ggplot(aes(x = first_yes, fill = group)) +
-    geom_histogram(bins = 60, position = "identity") +
-    scale_fill_manual(values = c("gray", "steelblue3")) +
-    facet_wrap(~panel, scales = "free_y", ncol = 2) +
-    geom_vline(data = current_steo_p,
-               aes(xintercept = first_yes, linetype = eo), 
-               color = "red") +
-    scale_linetype_manual(values = c("dashed", "solid")) +
-    labs(x = "Day of year", y = "Count", title = phc_name,
-         fill = "Prior observations", linetype = paste0(year, " observations")) +
-    theme_bw() +
-    theme(legend.position = "bottom",
-          legend.spacing.x = unit(1, "cm"))
-  assign(paste0("plot_", phc), plot_temp)
-}
-
-for (phc in pheno_class_ids) {
-  print(get(paste0("plot_", phc)))
-}
-
-
-
-# Not sure if we'll use stuff below -------------------------------------------#
-
-# Evaluate how much data we have at each site:
-  site_spp_ph <- prior %>%
-    group_by(site_id, lat, lon, elev, common_name, pheno_class_id) %>%
-    summarize(n_obs = n(),
-              n_indiv = n_distinct(id),
-              n_years = n_distinct(year),
-              .groups = "keep") %>%
-    mutate(spp_site_ph = paste0(common_name, "_", site_id, "_", pheno_class_id)) %>%
-    data.frame()
-  
-  # Calculate proportion of site-species combos that have 5/10 years of data for 
-  # each phenophase class
-  site_spp_ph %>%
-    group_by(pheno_class_id) %>%
-    summarize(n_sites = n_distinct(site_id),
-              # Number of sites with 10+ years of data
-              n_sites_10 = n_distinct(site_id[n_years >= 10]),
-              # Number of sites with 5+ years and 10+ observations
-              n_sites_5_10 = n_distinct(site_id[n_years >= 5 & n_obs >= 10])) %>%
-    mutate(prop_sites_10 = n_sites_10 / n_sites,
-           prop_sites_5_10 = n_sites_5_10 / n_sites) %>%
-    data.frame()
+```{r, fig.width = hist_width, fig.height = hist_heights[4]}
+plot_r_7
+```
