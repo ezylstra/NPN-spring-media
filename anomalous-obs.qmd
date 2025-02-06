@@ -1,48 +1,36 @@
 ---
-title: "Anomalous spring observations, 2025"
-date: 2/5/2025
+title: "Anomalous spring observations"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+execute:
+  echo: false
+  error: false
+  warning: false
+  message: false
 format:
   html:
     page-layout: full
+    fig-cap-location: top
 editor: visual
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = FALSE,
-                      error = FALSE, 
-                      warning = FALSE, 
-                      message = FALSE)
-```
+```{r}
+#| label: parameters
+#| include: false
 
+library(rnpn)
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(glue)
+library(ggplot2)
+library(scales) 
+library(sf)
+library(terra)
+library(tidyterra)
+library(elevatr)
+library(leaflet)
+library(kableExtra)
 
-```{r, results = "hide"}
-
-suppressMessages(library(rnpn))
-suppressMessages(library(dplyr))
-suppressMessages(library(lubridate))
-suppressMessages(library(stringr))
-suppressMessages(library(ggplot2))
-suppressMessages(library(scales)) # To make integer axis labels
-suppressMessages(library(sf))
-suppressMessages(library(terra))
-suppressMessages(library(tidyterra))
-suppressMessages(library(elevatr))
-suppressMessages(library(leaflet))
-suppressMessages(library(kableExtra))
-
-# Only needed if us_states shapefile not already present in resources folder
-  # library(rnaturalearth) 
-
-# This code identifies anomalous observations of plants in the current year 
-# compared to the long term record (2009-XXXX). First observation date in 
-# current year is compared to the distribution of dates from prior years. Early 
-# (lower than Xth percentile) and outliers (earlier than 1.5x the IQR) are 
-# flagged.
-
-# Need individual phenometrics for current year
-# Need individual phenometrics for prior years (for current year species)
-
-# Set parameters --------------------------------------------------------------#
 
 # Current year
 year <- 2025
@@ -70,6 +58,14 @@ radius <- 100
 # observations for comparison
 elev_buffer <- 1000
 
+# Select phenophase classes we're interested in
+phenoclasses <- npn_pheno_classes() %>% data.frame()
+pheno_class_ids <- c(1, 3, 6, 7)
+  # 1: initial shoot/leaf growth
+  # 3: leaves/needles
+  # 6: flowers/cones
+  # 7: open flowers/cones 
+
 # Set mapping parameters ------------------------------------------------------#
 
 # Set date to extract AGDD anomalies (for map). If don't want today, then set
@@ -88,8 +84,11 @@ agdd_breaks <- c(-2000, -40, 40, 2000)
 # Colors for map (blue = cooler, offwhite = normal, orange = warmer)
 cw_cols <- c("#6fa8d6", "#f7f0da", "#fa824d")
 # plot(1:3, rep(1, 3), pch = 19, cex = 5, col = cols)
+```
 
-# Get states layer ------------------------------------------------------------#
+```{r}
+#| label: import state boundaries
+#| include: false
 
 # File location
 states_shp <- "resources/us_states.shp"
@@ -103,30 +102,13 @@ if (!file.exists(states_shp)) {
 } else {
   states <- terra::vect(states_shp)
 }
+```
 
-# Helper calls ----------------------------------------------------------------#
+```{r}
+#| label: current data
+#| include: false
 
-# Get species IDs
-# species <- npn_species()
-
-# Get phenophase classes
-phenoclasses <- npn_pheno_classes() %>% data.frame()
-# head(phenoclasses, 13)
-
-# Select phenophase classes we're interested in
-pheno_class_ids <- c(1, 3, 6, 7)
-  # 1: initial shoot/leaf growth
-  # 3: leaves/needles
-  # 6: flowers/cones
-  # 7: open flowers/cones 
-
-# Note: for this script, not going to differentiate among phenophases in 
-# each phenophase class. Mostly phenophases differ among species or functional
-# type, but there are also some old phenophases that are no longer used.
-
-# Aquire, format phenometric data in current year -----------------------------#
-
-  current_dl <- npn_download_individual_phenometrics(
+current_dl <- npn_download_individual_phenometrics(
   request_source = 'erinz', 
   years = year,
   pheno_class_ids = pheno_class_ids, 
@@ -134,12 +116,11 @@ pheno_class_ids <- c(1, 3, 6, 7)
                         "species_functional_type")
 )
 
-
 # Simplify data (remove unnecessary columns; replace -9999 with NA)
 current <- current_dl %>%
   select(site_id, latitude, longitude, elevation_in_meters, state, 
          common_name, species_id, species_functional_type, individual_id, 
-         phenophase_description, pheno_class_id, first_yes_year, first_yes_day, 
+         phenophase_description, pheno_class_id, first_yes_year, first_yes_doy, 
          numdays_since_prior_no, observed_status_conflict_flag) %>%
   rename(lat = latitude,
          lon = longitude, 
@@ -148,7 +129,7 @@ current <- current_dl %>%
          id = individual_id, 
          phenophase = phenophase_description,
          year = first_yes_year,
-         first_yes = first_yes_day,
+         first_yes = first_yes_doy,
          prior_no = numdays_since_prior_no,
          flag = observed_status_conflict_flag) %>%
   mutate(across(c(elev, prior_no), 
@@ -203,19 +184,15 @@ current <- current %>%
   mutate(elev = ifelse(!is.na(elev), elev, elev_new)) %>%
   select(-elev_new)
 
-# Check which phenophases, functional groups have data
-count(current, pheno_class_id)
-count(current, pheno_class_id, func_type)
-  # Cactus, deciduous broadleaf, deciduous conifer, drought deciduous broadleaf,
-  # evergreen broadleaf, evergreen conifer, forb, graminoid, 
-  # semi-evergreen broadleaf, semi-evergreen forb
-
 # Extract first observations of the year
 current <- current %>%
   arrange(id, pheno_class_id, first_yes) %>%
   distinct(id, pheno_class_id, .keep_all = TRUE)
+```
 
-# Aquire, format phenometric data in previous years ---------------------------#
+```{r}
+#| label: prior data
+#| include: false
 
 for (pheno_class in pheno_class_ids) {
   spp <- unique(current$species_id[current$pheno_class_id == pheno_class])
@@ -295,6 +272,11 @@ prior <- prior %>%
   left_join(elev_fill, by = "site_id") %>%
   mutate(elev = ifelse(!is.na(elev), elev, elev_new)) %>%
   select(-elev_new)
+```
+
+```{r}
+#| label: data processing
+#| include: false
 
 # Compare current year observations with distribution of first observation dates
 # for plants within xx km and xx m elevation ----------------------------------#
@@ -307,6 +289,7 @@ for (i in 1:nrow(current)) {
   
   current1 <- current[i, ]
   
+  
   # Get locations for all observations of that species, phenophase
   locs <- prior %>%
     filter(common_name == current1$common_name, 
@@ -315,6 +298,7 @@ for (i in 1:nrow(current)) {
     distinct()
   
   # Calculate distance between 2025 plant and all others
+  if (nrow(locs) == 0) {next}
   dists <- terra::distance(x = as.matrix(current1[,c("lon", "lat")]),
                            y = as.matrix(locs[,c("lon", "lat")]), 
                            lonlat = TRUE,
@@ -389,7 +373,8 @@ quants_r_eo <- quants_r %>%
          eo = ifelse(outlier == 1, "Outlier", "Early"),
          eo = factor(eo, levels = c("Early", "Outlier")))
 
-# Loop through phenophase classes
+# Loop through phenophase classes and create ggplot objects with histograms
+# Each panel represents distribution associated with one 2025 observation
 for (phc in pheno_class_ids) {
   
   quants_r_p <- filter(quants_r_eo,  pheno_class_id == phc)
@@ -426,11 +411,6 @@ for (phc in pheno_class_ids) {
   # Save ggplot objects with name = plot_r_Phenophase class (eg, plot_r1)
   assign(paste0("plot_r_", phc), plot_temp)
 }
-
-# Print ggplot object for each phenophase class
-# for (phc in pheno_class_ids) {
-#   print(get(paste0("plot_r_", phc)))
-# }
 
 # Create table with early and outlier observations for all phenophase classes
 # ID, species, func type, state, lat, lon, elev, first yes, no. previous obs,
@@ -471,11 +451,11 @@ We identified observations of plant phenophases in Nature's Notebook (NN) that w
 
 We classified a 2025 observation as ***early*** if it was earlier than 95% of first-of-year observations in 2009-2024, and as an ***outlier*** if it was a Tukey outlier (2025 observation earlier than Q1 - 1.5 \* IQR). We also noted if the observation was as early or earlier than the earliest date ever recorded in NN for that species, phenophase, and region (***earliest***).
 
-In the tables below, we list all of the 2025 observations that were considered early or an outlier by phenophase class. No. Prior Obs. (Yrs) lists the number of 2009-2024 observations (with the associated number of years) that were used to determine whether a 2025 observation was anomalous or not. Histograms displaying distribution of observations in prior years that were used to assess 2025 potential anomalies are at the bottom of the document
-
-#### Observations of initial vegetative growth
+In the tables below, we list all of the 2025 observations that were considered early or an outlier by phenophase class. Histograms displaying distribution of observations in prior years that were used to assess 2025 potential anomalies are at the bottom of the document.
 
 ```{r}
+#| label: tbl-veg
+#| tbl-cap: "Anomalous observations of initial vegetative growth. ID = individual plant identification number. No. Prior Obs. (Yrs) lists the number of 2009-2024 observations (with the associated number of years) that were used to determine whether a 2025 observation was anomalous or not."
 
 outtable1 <- eo_table %>%
   filter(pheno_class_id == 1) %>%
@@ -494,9 +474,9 @@ outtable1 <- eo_table %>%
 outtable1
 ```
 
-#### Observations of leaves or needles
-
 ```{r}
+#| label: tbl-leaves
+#| tbl-cap: "Anomalous observations of leaves or needles. ID = individual plant identification number. No. Prior Obs. (Yrs) lists the number of 2009-2024 observations (with the associated number of years) that were used to determine whether a 2025 observation was anomalous or not."
 
 outtable3 <- eo_table %>%
   filter(pheno_class_id == 3) %>%
@@ -515,9 +495,9 @@ outtable3 <- eo_table %>%
 outtable3
 ```
 
-#### Observations of flowers or cones
-
 ```{r}
+#| label: tbl-flowers
+#| tbl-cap: "Anomalous observations of flowers or cones. ID = individual plant identification number. No. Prior Obs. (Yrs) lists the number of 2009-2024 observations (with the associated number of years) that were used to determine whether a 2025 observation was anomalous or not."
 
 outtable6 <- eo_table %>%
   filter(pheno_class_id == 6) %>%
@@ -536,9 +516,9 @@ outtable6 <- eo_table %>%
 outtable6
 ```
 
-#### Observations of open flowers or cones
-
 ```{r}
+#| label: tbl-openflowers
+#| tbl-cap: "Anomalous observations of open flowers or cones. ID = individual plant identification number. No. Prior Obs. (Yrs) lists the number of 2009-2024 observations (with the associated number of years) that were used to determine whether a 2025 observation was anomalous or not."
 
 outtable7 <- eo_table %>%
   filter(pheno_class_id == 7) %>%
@@ -557,11 +537,10 @@ outtable7 <- eo_table %>%
 outtable7
 ```
 
-<br>
-
-**Map of early initial vegetative growth and open flower observations.** Green leaves denote early observations of initial vegetation growth and purple flowers denote early observations of open flowers or cones. Circles delineate the areas containing plants observed in prior years that were used for comparison. Blue shading indicates areas that were cooler than normal as of `{r} agdd_date` (\>`{r} abs(agdd_breaks[2])` deg F below 30-year normals for accumulated growing degree days with 32 deg F base); orange shading indicates areas that were warmer than normal as of `{r} agdd_date` (\>`{r} agdd_breaks[3]` deg F above 30-year normals).
+------------------------------------------------------------------------
 
 ```{r}
+#| label: leaflet
 
 # Acquire raster with forecasted AGDD anomalies (in F, with 32-deg base)
 agdd_anom <- npn_download_geospatial(coverage_id = "gdd:agdd_anomaly",
@@ -607,8 +586,16 @@ map <- leaflet(early1, options = leafletOptions(minZoom = 3)) %>%
   addMarkers(lng = ~early7$lon, lat = ~early7$lat, icon = iflower) %>%
   addCircles(lng = ~early7$lon, lat = ~early7$lat, radius = ~radius_m,
              color = "purple", weight = 1, fill = FALSE)
+```
+
+```{r}
+#| label: fig-map
+#| fig-cap: !expr glue::glue("Map of early observations of initial vegetative growth and early observations of open flowers or cones. Green leaves denote early observations of initial vegetative growth and purple flowers denote early observations of open flowers or cones. Circles delineate the areas containing plants observed in prior years that were used for comparison. Blue shading indicates areas that were cooler than normal as of {agdd_date} (>{abs(agdd_breaks[2])} deg F below 30-year normals for accumulated growing degree days with 32 deg F base); orange shading indicates areas that were warmer than normal as of {agdd_date} (>{agdd_breaks[3]} deg F above 30-year normals).")
+
 map
 ```
+
+------------------------------------------------------------------------
 
 ```{r}
 npanel1 <- n_distinct(prior_plot_r$panel[prior_plot_r$pheno_class_id == 1])
@@ -620,28 +607,30 @@ hist_width <- 15
 hist_heights <- 2.25 * ceiling(npanels / 2)
 ```
 
-<br> <br>
-
-**Initial vegetative growth.** Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early.
-
 ```{r, fig.width = hist_width, fig.height = hist_heights[1]}
+#| label: fig-hists1
+#| fig-cap: "Initial vegetative growth. Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early."
+
 plot_r_1
 ```
 
-**Leaves or needles.** Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early.
-
 ```{r, fig.width = hist_width, fig.height = hist_heights[2]}
+#| label: fig-hists2
+#| fig-cap: "Leaves or needles. Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early."
+
 plot_r_3
 ```
 
-**Flowers or cones.** Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early.
-
 ```{r, fig.width = hist_width, fig.height = hist_heights[3]}
+#| label: fig-hists3
+#| fig-cap: "Flowers or cones. Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early."
+
 plot_r_6
 ```
 
-**Open flowers or cones.** Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early.
-
 ```{r, fig.width = hist_width, fig.height = hist_heights[4]}
+#| label: fig-hists4
+#| fig-cap: "Open flowers or cones. Distributions of first-of-year observations in 2009-2024 that were used to assess whether a 2025 observation (red vertical line) was unusually early."
+
 plot_r_7
 ```
