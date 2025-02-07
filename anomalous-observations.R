@@ -1,7 +1,7 @@
 # Anomalous observations script
 # Originally developed by A. Rosemartin and T. Crimmins
 # Adapted from https://github.com/alyssarosemartin/spring-media/anomalous_obs
-# 4 Feb 2025
+# 7 Feb 2025
 
 library(rnpn)
 library(dplyr)
@@ -15,8 +15,9 @@ library(tidyterra)
 library(elevatr)
 library(leaflet)
 
-# Only needed if us_states shapefile not already present in resources folder
-  # library(rnaturalearth) 
+# library(rnaturalearth) 
+  # Only needed if us_states shapefile not already present in resources folder
+
 
 # This code identifies anomalous observations of plants in the current year 
 # compared to the long term record (2009-XXXX). First observation date in 
@@ -39,7 +40,7 @@ prior_years <- 2009:(year - 1)
 lowerq <- 0.05
 
 # Logical indicating whether to denote Tukey outliers in addition to early 
-# observations (those below X percentile) in figures and maps
+# observations (those below X percentile) in histograms
 outliers <- FALSE
 
 # Set minimum number of years and observations needed in prior years to 
@@ -55,6 +56,17 @@ radius <- 100
 # observations for comparison
 elev_buffer <- 1000
 
+# Select phenophase classes we're interested in
+phenoclasses <- npn_pheno_classes() %>% data.frame()
+pheno_class_ids <- c(1, 3, 6, 7)
+  # 1: initial shoot/leaf growth
+  # 3: leaves/needles
+  # 6: flowers/cones
+  # 7: open flowers/cones 
+# Note: for this script, not going to differentiate among phenophases in 
+# each phenophase class. Mostly phenophases differ among species or functional
+# type, but there are also some old phenophases that are no longer used.
+
 # Set mapping parameters ------------------------------------------------------#
 
 # Set date to extract AGDD anomalies (for map). If don't want today, then set
@@ -62,6 +74,8 @@ elev_buffer <- 1000
 agdd_today <- TRUE
 if (!agdd_today) {
   agdd_date <- ymd("2025-02-03")
+} else {
+  agdd_date <- today()
 }
 
 # Define breaks that will be used to delineate areas cooler/warmer than 30-year
@@ -87,26 +101,6 @@ if (!file.exists(states_shp)) {
   states <- terra::vect(states_shp)
 }
 
-# Helper calls ----------------------------------------------------------------#
-
-# Get species IDs
-# species <- npn_species()
-
-# Get phenophase classes
-phenoclasses <- npn_pheno_classes() %>% data.frame()
-# head(phenoclasses, 13)
-
-# Select phenophase classes we're interested in
-pheno_class_ids <- c(1, 3, 6, 7)
-  # 1: initial shoot/leaf growth
-  # 3: leaves/needles
-  # 6: flowers/cones
-  # 7: open flowers/cones 
-
-# Note: for this script, not going to differentiate among phenophases in 
-# each phenophase class. Mostly phenophases differ among species or functional
-# type, but there are also some old phenophases that are no longer used.
-
 # Aquire, format phenometric data in current year -----------------------------#
 
 current_dl <- npn_download_individual_phenometrics(
@@ -121,7 +115,7 @@ current_dl <- npn_download_individual_phenometrics(
 current <- current_dl %>%
   select(site_id, latitude, longitude, elevation_in_meters, state, 
          common_name, species_id, species_functional_type, individual_id, 
-         phenophase_description, pheno_class_id, first_yes_year, first_yes_day, 
+         phenophase_description, pheno_class_id, first_yes_year, first_yes_doy, 
          numdays_since_prior_no, observed_status_conflict_flag) %>%
   rename(lat = latitude,
          lon = longitude, 
@@ -130,16 +124,16 @@ current <- current_dl %>%
          id = individual_id, 
          phenophase = phenophase_description,
          year = first_yes_year,
-         first_yes = first_yes_day,
+         first_yes = first_yes_doy,
          prior_no = numdays_since_prior_no,
          flag = observed_status_conflict_flag) %>%
   mutate(across(c(elev, prior_no), 
-         ~ ifelse(. == -9999, NA, .))) %>%
+                ~ ifelse(. == -9999, NA, .))) %>%
   mutate(across(c(state, flag), 
                 ~ ifelse(. == "-9999", NA, .))) %>%
   mutate(state = ifelse(state == "", NA, state)) %>%
   data.frame()
-  
+
 # Remove observations of 'ohi'a lehua 
 current <- current %>%
   filter(common_name != "'ohi'a lehua")
@@ -184,13 +178,6 @@ current <- current %>%
   left_join(elev_fill, by = "site_id") %>%
   mutate(elev = ifelse(!is.na(elev), elev, elev_new)) %>%
   select(-elev_new)
-
-# Check which phenophases, functional groups have data
-count(current, pheno_class_id)
-count(current, pheno_class_id, func_type)
-  # Cactus, deciduous broadleaf, deciduous conifer, drought deciduous broadleaf,
-  # evergreen broadleaf, evergreen conifer, forb, graminoid, 
-  # semi-evergreen broadleaf, semi-evergreen forb
 
 # Extract first observations of the year
 current <- current %>%
@@ -303,6 +290,7 @@ for (i in 1:nrow(current)) {
     distinct()
   
   # Calculate distance between 2025 plant and all others
+  if (nrow(locs) == 0) {next}
   dists <- terra::distance(x = as.matrix(current1[,c("lon", "lat")]),
                            y = as.matrix(locs[,c("lon", "lat")]), 
                            lonlat = TRUE,
@@ -377,7 +365,8 @@ quants_r_eo <- quants_r %>%
          eo = ifelse(outlier == 1, "Outlier", "Early"),
          eo = factor(eo, levels = c("Early", "Outlier")))
 
-# Loop through phenophase classes
+# Loop through phenophase classes and create ggplot objects with histograms
+# Each panel represents distribution associated with one 2025 observation
 for (phc in pheno_class_ids) {
   
   quants_r_p <- filter(quants_r_eo,  pheno_class_id == phc)
@@ -409,7 +398,7 @@ for (phc in pheno_class_ids) {
       theme_bw()
   }
   
-  # Save ggplot objects with name = plot_r_Phenophase class (eg, plot_r1)
+  # Save ggplot objects with name = plot_r_Phenophase class (eg, plot_r_1)
   assign(paste0("plot_r_", phc), plot_temp)
 }
 
@@ -421,9 +410,6 @@ for (phc in pheno_class_ids) {
 # Create map with early observations
 
 # Acquire raster with forecasted AGDD anomalies (in F, with 32-deg base)
-if (agdd_today) {
-  agdd_date <- today()
-}
 agdd_anom <- npn_download_geospatial(coverage_id = "gdd:agdd_anomaly", 
                                      date = agdd_date)  
 
@@ -433,8 +419,10 @@ pal <- colorBin (palette = cw_cols,
                  bins = agdd_breaks,
                  na.color = "transparent")
 
-# Set background color
-backg <- htmltools::tags$style(".leaflet-container { background: white; }" )
+# Set background color to white (skipping this for now)
+  # backg <- htmltools::tags$style(".leaflet-container { background: white; }" )
+# To implement this, would need to add the following to leaflet call:
+  # htmlwidgets::prependContent(backg)
 
 # Create flower icon
 iflower <- makeIcon(iconUrl = "resources/flower.ico",
@@ -469,14 +457,10 @@ map <- leaflet(early1, options = leafletOptions(minZoom = 3)) %>%
              color = "green", weight = 1, fill = FALSE) %>%
   addMarkers(lng = ~early7$lon, lat = ~early7$lat, icon = iflower) %>%
   addCircles(lng = ~early7$lon, lat = ~early7$lat, radius = ~radius_m,
-             color = "purple", weight = 1, fill = FALSE) %>%
-  htmlwidgets::prependContent(backg)
+             color = "purple", weight = 1, fill = FALSE)
 map
 
 # Create table with early and outlier observations for all phenophase classes
-# ID, species, func type, state, lat, lon, elev, first yes, no. previous obs,
-# no. previous yrs, early(y/n), outlier (y/n), earliest ever (tied or beat 
-# previous)
 current_join <- current %>%
   mutate(indiv = paste0(common_name, "_", id)) %>%
   select(common_name, indiv, id, pheno_class_id, lat, lon, elev, func_type,
@@ -487,30 +471,27 @@ eo_table <- quants_r_eo %>%
   left_join(current_join, by = c("indiv", "pheno_class_id")) %>%
   mutate(early = ifelse(early == 1, "Yes", "No"),
          outlier = ifelse(outlier == 1, "Yes", "No"), 
-         Earliest = ifelse(first_yes <= min, "Yes", "No"),
-         FirstYes = parse_date_time(x = paste(year, first_yes), 
-                                              orders = "yj")) %>%
+         earliest = ifelse(first_yes <= min, "Yes", "No"),
+         firstyes = parse_date_time(x = paste(year, first_yes), 
+                                    orders = "yj")) %>%
+  mutate(func_type2 = case_when(
+    func_type == "Deciduous broadleaf" ~ "DB",
+    func_type == "Deciduous conifer" ~ "DC",
+    func_type == "Drought deciduous broadleaf" ~ "DDB",
+    func_type == "Evergreen broadleaf" ~ "EB",
+    func_type == "Evergreen conifer" ~ "EC",
+    func_type == "Graminoid" ~ "Gram",
+    func_type == "Semi-evergreen broadleaf" ~ "SEB",
+    func_type == "Forb" ~ "Forb",
+    .default = NA
+  )) %>%
   select(pheno_class_id, common_name, func_type, id, state, lat, lon, elev, 
-         first_yes, FirstYes, early, Earliest, outlier, n_yrs_r, n_obs_r) %>%
-  rename(Phenoclass = pheno_class_id,
-         Species = common_name,
-         FunctionalType = func_type,
-         Individual = id, 
-         State = state,
-         Latitude = lat,
-         Longitude = lon,
-         Elevation = elev, 
-         Early = early,
-         Outlier = outlier,
-         NumPriorYears = n_yrs_r,
-         NumPriorObs = n_obs_r) %>%
-  arrange(Phenoclass, FunctionalType, Species, State, first_yes) %>%
+         first_yes, firstyes, early, earliest, outlier, n_yrs_r, n_obs_r) %>%
+  arrange(pheno_class_id, func_type, common_name, state, first_yes) %>%
   select(-first_yes)
 
-# View anomalous open flower observations
-eo_table %>%
-  filter(Phenoclass == 7) %>%
-  select(-c(Phenoclass, Individual))
+
+# Not sure if we'll use stuff below -------------------------------------------#
 
 
 # Compare current year observations with distribution of first observation dates
@@ -633,11 +614,7 @@ for (phc in pheno_class_ids) {
   print(get(paste0("plot_", phc)))
 }
 
-
-
-# Not sure if we'll use stuff below -------------------------------------------#
-
-# Evaluate how much data we have at each site:
+# Evaluate how much data we have at each site ---------------------------------#
   site_spp_ph <- prior %>%
     group_by(site_id, lat, lon, elev, common_name, pheno_class_id) %>%
     summarize(n_obs = n(),

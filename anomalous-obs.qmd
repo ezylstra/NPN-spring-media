@@ -41,8 +41,8 @@ prior_years <- 2009:(year - 1)
 # Define early observations (below X percentile)
 lowerq <- 0.05
 
-# Logical indicating whether to identify Tukey outliers in addition to early 
-# observations (those below X percentile) in figures and maps
+# Logical indicating whether to denote Tukey outliers in addition to early 
+# observations (those below X percentile) in histograms
 outliers <- FALSE
 
 # Set minimum number of years and observations needed in prior years to 
@@ -408,14 +408,11 @@ for (phc in pheno_class_ids) {
       theme(text = element_text(size = 12))
   }
   
-  # Save ggplot objects with name = plot_r_Phenophase class (eg, plot_r1)
+  # Save ggplot objects with name = plot_r_Phenophase class (eg, plot_r_1)
   assign(paste0("plot_r_", phc), plot_temp)
 }
 
 # Create table with early and outlier observations for all phenophase classes
-# ID, species, func type, state, lat, lon, elev, first yes, no. previous obs,
-# no. previous yrs, early(y/n), outlier (y/n), earliest ever (tied or beat 
-# previous)
 current_join <- current %>%
   mutate(indiv = paste0(common_name, "_", id)) %>%
   select(common_name, indiv, id, pheno_class_id, lat, lon, elev, func_type,
@@ -429,17 +426,6 @@ eo_table <- quants_r_eo %>%
          earliest = ifelse(first_yes <= min, "Yes", "No"),
          firstyes = parse_date_time(x = paste(year, first_yes), 
                                               orders = "yj")) %>%
-  mutate(func_type2 = case_when(
-    func_type == "Deciduous broadleaf" ~ "DB",
-    func_type == "Deciduous conifer" ~ "DC",
-    func_type == "Drought deciduous broadleaf" ~ "DDB",
-    func_type == "Evergreen broadleaf" ~ "EB",
-    func_type == "Evergreen conifer" ~ "EC",
-    func_type == "Graminoid" ~ "Gram",
-    func_type == "Semi-evergreen broadleaf" ~ "SEB",
-    func_type == "Forb" ~ "Forb",
-    .default = NA
-  )) %>%
   select(pheno_class_id, common_name, func_type, id, state, lat, lon, elev, 
          first_yes, firstyes, early, earliest, outlier, n_yrs_r, n_obs_r) %>%
   arrange(pheno_class_id, func_type, common_name, state, first_yes) %>%
