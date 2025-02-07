@@ -222,5 +222,43 @@ ggplot(counties3) +
   
 
 
+# Bloom -----------------------------------------------------------------------#
+
+layers <- npn_get_layer_details()
+filter(layers, name == "si-x:average_bloom_prism")
+
+# Using annual rasters with DOY that requirements for the first bloom Spring 
+# Index were met, averaged for 3 species, based on PRISM data
+
+# Get raster layers with annual spring index values for first bloom -----------#
+
+# Location to save rasters
+rast_folder <- "resources/rasters/"
+
+# Get layers for all years except current
+for (yr in 1981:2024) {
+  output_path <- paste0(rast_folder, "bloom/", yr, "_si-x_bloom_prism.tif")
+  npn_download_geospatial("si-x:average_bloom_prism",
+                          date = paste0(yr, "-01-01"),
+                          output_path = output_path)
+}
+
+# Obtaining raster for current year from https://data.usanpn.org/geoserver-request-builder/
+# Selecting WCS layer: Spring Indices, Current Year - First Bloom - Spring Index
+# TODO: Check that this is correct!
+current_bloom_files <- list.files(paste0(rast_folder, "bloom"),
+                                  pattern = "ncep_",
+                                  full.names = TRUE)
+mostcurrent_bloom_file <- last(sort(current_bloom_files))
+b2025 <- rast(mostcurrent_bloom_file)
+
+# Resample current year raster to match resolution of prior years
+b2024 <- rast("resources/rasters/bloom/2024_si-x_bloom_prism.tif")
+b2025 <- resample(b2025, b2024, method = "bilinear")
+
+# Save new resampled raster
+current_file <- paste0(rast_folder, "bloom/2025_si-x_bloom_prism.tif")
+writeRaster(b2025, filename = current_file, overwrite = TRUE)
+
 
 
