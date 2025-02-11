@@ -1,7 +1,7 @@
 # Spring rankings, by county
 # Originally developed by A. Rosemartin and T. Crimmins
 # Adapted from https://github.com/alyssarosemartin/spring-media/tree/main/earliest-spring-ranking
-# 10 Feb 2025
+# 11 Feb 2025
 
 library(rnpn)
 library(dplyr)
@@ -252,8 +252,8 @@ leaf_a_map <- ggplot(counties2) +
 leaf_a_map
 
 # Create dataframe with spring rankings for prior years (not including current)
-# I think there might be ties we'll need to deal with...
-
+  # Wasn't sure what to do with ties (see WV: Wood for an example), so for now,
+  # put more recent year first
 prior_cols <- paste0("doy_", prior_years)
 leafr <- leaf %>%
   select(-contains("anom")) %>%
@@ -264,11 +264,130 @@ leafr <- leaf %>%
   mutate(year = as.numeric(str_remove(year, "doy_"))) %>%
   group_by(STATEFP, COUNTYFP, state, county, mean, median) %>%
   mutate(rank = rank(doy)) %>%
+  arrange(STATEFP, COUNTYFP, rank, desc(year)) %>%
   data.frame()
-leaf_rank <- leafr %>%
+
+leafrr <- leafr %>%
   group_by(STATEFP, COUNTYFP, state, county, mean, median) %>%
-  summarize(early1 = year[rank == 1],
-            early2 = year[rank == 2], 
+  summarize(early01 = year[1],
+            early02 = year[2],
+            early03 = year[3],
+            early04 = year[4],
+            early05 = year[5],
+            early06 = year[6],
+            early07 = year[7],
+            early08 = year[8],
+            early09 = year[9],
+            early10 = year[10],
+            late01 = year[length(prior_years)],
+            late02 = year[length(prior_years) - 1],
+            late03 = year[length(prior_years) - 2],
+            late04 = year[length(prior_years) - 3],
+            late05 = year[length(prior_years) - 4],
+            late06 = year[length(prior_years) - 5],
+            late07 = year[length(prior_years) - 6],
+            late08 = year[length(prior_years) - 7],
+            late09 = year[length(prior_years) - 8],
+            late10 = year[length(prior_years) - 9],
             .groups = "keep") %>%
   data.frame()
+
+# Create indicators to see whether recent years in top 10 earliest
+leafrr$e2024 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2024), 1, 0))
+leafrr$e2023 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2023), 1, 0))
+leafrr$e2022 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2022), 1, 0))
+leafrr$e2021 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2021), 1, 0))
+leafrr$e2020 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2020), 1, 0))
+
+# Create indicators to see whether recent years in top 10 latest
+leafrr$l2024 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2024), 1, 0))
+leafrr$l2023 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2023), 1, 0))
+leafrr$l2022 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2022), 1, 0))
+leafrr$l2021 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2021), 1, 0))
+leafrr$l2020 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
+                      function(x) ifelse(any(x == 2020), 1, 0))
+
+leafrr$e20_sum <- apply(leafrr[, paste0("e202", 0:4)], 1, sum)
+leafrr$l20_sum <- apply(leafrr[, paste0("l202", 0:4)], 1, sum)
+# Average number of 2020 years in the top 10 earliest or latest
+summary(leafrr[, c("e20_sum", "l20_sum")])
+# Number of 2020 years in top 10 earliest or latest
+count(leafrr, e20_sum)
+count(leafrr, l20_sum)
+# Recent years more likely to be in early than late.
+
+# Could also present ranked years in table where each column is a county
+leafrr_t <- leafrr %>%
+  # Using FIPS codes because there are a few county names that are duplicates
+  # (Baltimore county and city; 24005, 24510)
+  mutate(fips = paste0("fp_", STATEFP, COUNTYFP)) %>%
+  select(fips, 
+         paste0("early0", 1:9), "early10", 
+         paste0("late0", 1:9), "late10") %>%
+  pivot_longer(cols = -fips, 
+               names_to = "rank") %>%
+  # group_by(state_co) %>%
+  # mutate(row = row_number()) %>%
+  pivot_wider(names_from = fips,
+              values_from = value) %>%
+  # select(-row) %>%
+  data.frame()
+
+# Create dataframe with spring rankings that include the current year
+# If ties, put more recent year first
+year_cols <- paste0("doy_", c(prior_years, year))
+leafr_current <- leaf %>%
+  select(-contains("anom")) %>%
+  filter(!is.na(get(paste0("doy_", year)))) %>%
+  pivot_longer(cols = all_of(year_cols),
+               names_to = "year",
+               values_to = "doy") %>%
+  mutate(year = as.numeric(str_remove(year, "doy_"))) %>%
+  group_by(STATEFP, COUNTYFP, state, county, mean, median) %>%
+  mutate(rank = rank(doy)) %>%
+  arrange(STATEFP, COUNTYFP, rank, desc(year)) %>%
+  data.frame()
+leafrr_current <- leafr_current %>%
+  group_by(STATEFP, COUNTYFP, state, county, mean, median) %>%
+  summarize(earliest = ifelse(year[1] == 2025, 1, 0),
+            top5 = ifelse(any(year[1:5] == 2025), 1, 0),
+            top10 = ifelse(any(year[1:10] == 2025), 1, 0),
+            .groups = "keep") %>%
+  data.frame() %>%
+  mutate(rank = case_when(
+    earliest == 1 ~ "Earliest", 
+    top5 == 1 ~ "Top 5", 
+    top10 == 1 ~ "Top 10", 
+    .default = "Not early"
+  )) %>%
+  mutate(rank = factor(rank, levels = c("Not early", "Top 10", 
+                                        "Top 5", "Earliest")))
+filter(leafrr_current, top10 == 1)
+
+# Create map
+counties3 <- left_join(counties, 
+                       select(leafrr_current, STATEFP, COUNTYFP, rank),
+                       by = c("STATEFP", "COUNTYFP"))
+
+rank_map <- ggplot(counties3) +
+  geom_spatvector(aes(fill = rank), color = NA) +
+  scale_fill_manual(values = c("Not early" = "white", 
+                               "Top 10" = "yellow",
+                               "Top 5" = "orange",
+                               "Earliest" = "red"), 
+                    breaks = c("Not early", "Top 10", "Top 5"),
+                    drop = TRUE) +
+  labs(title = paste0("Leaf spring index, ", year, " ranking"),
+       fill = "Rank")
+rank_map
+
   
