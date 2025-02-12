@@ -145,10 +145,10 @@ current <- current %>%
   filter(prior_no <= 30) %>%
   select(-flag)
 
-# Keep only first observation of individual for a phenophase in a year
+# Keep only first observation of individual for a phenophase in current year
 current <- current %>%
-  arrange(id, pheno_class_id, year, first_yes) %>%
-  distinct(id, pheno_class_id, year, .keep_all = TRUE)
+  arrange(id, pheno_class_id, first_yes) %>%
+  distinct(id, pheno_class_id, .keep_all = TRUE)
 
 # Some observations missing state ID. Will fill in using states layer from the 
 # tigris package
@@ -178,11 +178,6 @@ current <- current %>%
   left_join(elev_fill, by = "site_id") %>%
   mutate(elev = ifelse(!is.na(elev), elev, elev_new)) %>%
   select(-elev_new)
-
-# Extract first observations of the year
-current <- current %>%
-  arrange(id, pheno_class_id, first_yes) %>%
-  distinct(id, pheno_class_id, .keep_all = TRUE)
 
 # Aquire, format phenometric data in previous years ---------------------------#
 
