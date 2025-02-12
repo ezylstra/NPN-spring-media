@@ -284,7 +284,7 @@ for (i in 1:nrow(current)) {
     select(site_id, lat, lon) %>%
     distinct()
   
-  # Calculate distance between 2025 plant and all others
+  # Calculate distance between current-year plant and all others
   if (nrow(locs) == 0) {next}
   dists <- terra::distance(x = as.matrix(current1[,c("lon", "lat")]),
                            y = as.matrix(locs[,c("lon", "lat")]), 
@@ -361,7 +361,7 @@ quants_r_eo <- quants_r %>%
          eo = factor(eo, levels = c("Early", "Outlier")))
 
 # Loop through phenophase classes and create ggplot objects with histograms
-# Each panel represents distribution associated with one 2025 observation
+# Each panel represents distribution associated with one current-year observation
 for (phc in pheno_class_ids) {
   
   quants_r_p <- filter(quants_r_eo,  pheno_class_id == phc)
@@ -511,7 +511,7 @@ state_spp_n <- prior_st %>%
             .groups = "keep") %>%
   data.frame()
 
-# Only evaluate 2025 anomalies for state-species combinations that have
+# Only evaluate current-year anomalies for state-species combinations that have
 # sufficient observations in prior years
 state_spp_n <- state_spp_n %>%
   filter(n_years >= min_yrs & n_obs >= min_obs)
