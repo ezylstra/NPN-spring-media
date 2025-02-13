@@ -1,7 +1,7 @@
 # Spring rankings, by county
 # Originally developed by A. Rosemartin and T. Crimmins
 # Adapted from https://github.com/alyssarosemartin/spring-media/tree/main/earliest-spring-ranking
-# 11 Feb 2025
+# 13 Feb 2025
 
 library(rnpn)
 library(dplyr)
@@ -17,33 +17,41 @@ library(exactextractr)
 # library(tigris) 
   # Only needed if us_counties shapefile not already present in resources folder
 
-# This code extracts the average day of year of leaf out and bloom by county 
-# (weighted average of pixels that fall within the county), enabling us
-# to rank the top 10 earliest springs in this county and assess how the 
-# current year compares.
+# This code extracts day of year of leaf out and bloom by county 
+# (weighted average of pixels that fall within the county) and ranks how the 
+# current spring compares to those in previous years.
 
 # Helper calls ----------------------------------------------------------------#
 
-# layers <- npn_get_layer_details()
+layers <- npn_get_layer_details()
+
 # filter(layers, name == "si-x:average_leaf_prism")
 # filter(layers, name == "si-x:average_bloom_prism")
+  # Annual rasters with DOY that requirements for the first leaf/bloom index 
+  # were met, averaged for 3 species (PRISM data)
 
-# Using annual rasters with DOY that requirements for the first leaf or bloom
-# Spring Index were met, averaged for 3 species, based on PRISM data
+# filter(layers, name == "si-x:average_leaf_ncep")
+# filter(layers, name == "si-x:average_bloom_ncep")
+  # Raster with DOY leaf/bloom index reached in current year (NCEP data). Can
+  # download any day up to current or up to 6 days forecasted in advance.
 
-# Note: will obtain rasters for current year from: 
-# https://data.usanpn.org/geoserver-request-builder/
-# Selecting WCS layer: Spring Indices, Current Year - First Leaf- Spring Index
-# Selecting WCS layer: Spring Indices, Current Year - first Bloom - Spring Index
-#TODO: Check that this is correct!
-# Will save current-year raster as: ncep_yyyymmdd_si-x_average_leaf/bloom.tif
+# filter(layers, name == "si-x:leaf_anomaly")
+# filter(layers, name == "si-x:bloom_anomaly")
+  # Raster with anomalies for current year (DOY - 30-year mean DOY; NCEP data). 
+  # Could use this as a gut-check for anomalies we calculate at the county level
+
+# filter(layers, name == "si-x:leaf_return_interval")
+# filter(layers, name == "si-x:bloom_return_interval")
+  # Raster with return intervals for current year based on data over previous 
+  # 40 years (NCEP data). Could use this as a gut-check for return intervals we 
+  # calculate at the county level
 
 # Set parameters --------------------------------------------------------------#
 
 # Current year
 year <- 2025
 
-# First year to include in rankings
+# First year to download layers for
 year1 <- 1981
 
 # Prior years
@@ -54,7 +62,7 @@ rast_folder <- "resources/rasters/"
 
 # Logical to indicate whether script should be re-run to calculate current year
 # index values as of today's date (if not done already)
-today <- FALSE
+rerun_today <- TRUE
 
 # Minimum proportion of county that has reached spring index threshold 
 min_prop <- 0.90
@@ -89,6 +97,7 @@ for (ind in index) {
   ind_folder <- paste0(rast_folder, ind)
   ind_files <- paste0(ind_folder, "/", prior_years, "_si-x_", ind, "_prism.tif")
   
+  # Download rasters for prior years 
   # If one or more index files for prior years doesn't exist, download them all
   if (!all(file.exists(ind_files))) {
     for (i in 1:length(prior_years)) {
@@ -98,46 +107,34 @@ for (ind in index) {
     }
   }
   
-  # If no current year files exist, will produce a warning. 
-  # Need to download file from geoserver request builder first
-  current_files <- list.files(ind_folder, pattern = "ncep_", full.names = TRUE)
-  if (length(current_files) == 0) {
-    warning(paste0("Current year ", ind, " index file has not been downloaded.",
-                   " Download from geoserver request builder first."))
-  }
-  
-  # If we need today's raster and that hasn't been downloaded yet, do that first
-  today_flag <- 0
-  today_file <- paste0(ind_folder, "/ncep_", 
-                       str_remove_all(Sys.Date(), "-"), 
-                       "_si-x_average_", ind, ".tif")
-  if (today & !file.exists(today_file)) {
-    today_flag <- 1
-    warning(paste0("Current year ", ind, " index file has not been downloaded today.",
-                   " Download from geoserver request builder first."))
-  }
-  
-  # Resample current year raster to have the same geometry as rasters from prior
-  # years if that hasn't been done already.
-  current_file <- paste0(ind_folder, "/", year, "_si-x_", ind, "_prism.tif")
-  if (!file.exists(current_file) | today_flag == 1) {
-    current_files_orig <- list.files(ind_folder, 
-                                     pattern = "ncep_", 
-                                     full.names = TRUE)
-    mostcurrent_file <- last(sort(current_files_orig))
-    current_rast <- rast(mostcurrent_file)
+  # Download rasters for current year. Only do so if any current-year file 
+  # doesn't exist or if rerun_today == TRUE and layer for yesterday (most
+  # current non-forecasted layer) hasn't already been downloaded
+  ncep_doy_files <- list.files(ind_folder, pattern = "ncep_", full.names = TRUE)
+  ncep_doy_yest <- paste0(ind_folder, "/ncep_", str_remove_all(today() - 1, "-"), 
+                          "_si-x_average_", ind, ".tif")
+  need_yest <- !file.exists(ncep_doy_yest)
+  if (length(ncep_doy_files) == 0 | (rerun_today & need_yest)) {
+    npn_download_geospatial("si-x:average_leaf_ncep",
+                            date = today() - 1, 
+                            output_path = ncep_doy_yest)
     
-    prior_rast <- rast(last(ind_files))
-    
-    # Resample current year raster to match geometry of prior years
-    current_rast <- resample(current_rast, prior_rast, method = "bilinear")
-    names(current_rast) <- paste0(year, "_si-x_", ind, "_prism")
+    # Resample current year raster to have the same geometry as rasters from 
+    # prior years (based on PRISM data).
+    ncep_doy_rast <- rast(ncep_doy_yest) 
+    prioryr_rast <- rast(last(ind_files))
+    current_rast <- resample(ncep_doy_rast, prioryr_rast, method = "bilinear")
+    names(current_rast) <- paste0(year, "_si-x_", ind, ".tif")
     
     # Save new resampled raster
-    writeRaster(current_rast, filename = current_file, overwrite = TRUE)
+    writeRaster(current_rast, 
+                filename = paste0(ind_folder, "/", year, "_si-x_", ind, ".tif"),
+                overwrite = TRUE)
+    
+    rm(ncep_doy_rast, prioryr_rast, current_rast)
   }
 }
-
+  
 # Calculate annual index values by county -------------------------------------#
 
 # For each year, we will calculate the mean DOY for each county by calculating 
@@ -147,23 +144,25 @@ for (ind in index) {
 # Did some checks with terra and exactextractr packages
 # terra::extract() with na.rm = TRUE and exact = TRUE produces same results as
 # exactextractr::exact_extract() with fun = "mean".
-# Functions in exactextractr require sf vector objects, which is a pain, but 
+# Functions in exactextractr require sf vector objects, which is a pain but 
 # run much faster than terra functions, so we'll stick with exactextractr
 
 # After an initial run, realized that some county values were extreme (eg, more
 # than 30 days early) and high resolution spring maps on NPN website didn't
 # have values anywhere near that. This seems to be occurring when we have large
-# counties where only a few cells have reached the threshold and so most raster
-# cells are NA. Given this, we will only calculate county means when most or all
-# of the raster cells have reached the threshold. 
+# counties where only a few cells have reached the threshold, Given this, we 
+# will only calculate county means when most or all of the raster cells have 
+# reached the threshold. 
 
 for (ind in index) {
+  
   # Create multi-layer raster
   ann_files <- list.files(paste0(rast_folder, ind), full.names = TRUE)
   ann_files <- str_subset(ann_files, pattern = "ncep_", negate = TRUE)
   mrast <- rast(ann_files)
-  
   names(mrast) <- paste0("y", str_sub(names(mrast), 1, 4))
+  
+  # Create dataframe with annual means for each county
   ind_doy <- exactextractr::exact_extract(x = mrast,
                                           y = sf::st_as_sf(counties),
                                           fun = c("mean", "count"),
@@ -180,7 +179,6 @@ for (ind in index) {
   # Set county mean to NA if < min_prop of county has reached threshold
   ind_doy[, cmean] <- ifelse(ind_doy$frac < min_prop, NA, ind_doy[, cmean])
   ind_doy <- ind_doy %>%
-    mutate(across(everything(), ~ifelse(is.nan(.), NA, .))) %>%
     select(STATEFP, COUNTYFP, STUSPS, NAME, starts_with("mean.y")) %>%
     rename(state = STUSPS, 
            county = NAME) %>%
