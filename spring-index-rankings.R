@@ -1,4 +1,4 @@
-# Spring rankings, by county
+# Spring indices, by county
 # Originally developed by A. Rosemartin and T. Crimmins
 # Adapted from https://github.com/alyssarosemartin/spring-media/tree/main/earliest-spring-ranking
 # 13 Feb 2025
@@ -17,9 +17,46 @@ library(exactextractr)
 # library(tigris) 
   # Only needed if us_counties shapefile not already present in resources folder
 
-# This code extracts day of year of leaf out and bloom by county 
-# (weighted average of pixels that fall within the county) and ranks how the 
-# current spring compares to those in previous years.
+# This code calculates the mean day of year that the leaf/bloom spring index is
+# reached in each US county
+
+# Set parameters --------------------------------------------------------------#
+
+# Current year
+year <- 2025
+
+# First year to download layers for
+year1 <- 1981
+
+# Prior years (for data download)
+prior_years <- year1:(year - 1)
+
+# Location to save rasters
+rast_folder <- "resources/rasters/"
+
+# Logical to indicate whether script should be re-run to calculate current year
+# index values as of today's date (if not done already)
+rerun_today <- TRUE
+
+# Minimum proportion of county that has reached spring index threshold 
+min_prop <- 0.90
+# If less than (min_prop * 100)% of county has reached spring index threshold, 
+# we will not calculate a county mean.
+
+# Identify whether to restrict output to current year + previous 40 years
+# (this would be similar to approach NPN has used previously, particularly for
+# return intervals)
+prior40 <- TRUE
+
+# Identify whether to create a formatted table and save a csv file with leaf 
+# index and/or bloom index values 
+leaf_table <- TRUE
+bloom_table <- TRUE
+
+# For csv file output: Select whether to have one row per county 
+# (columns = years; county_row = TRUE) or one column per county (rows = years; 
+# county_row = FALSE)
+county_row <- TRUE
 
 # Helper calls ----------------------------------------------------------------#
 
@@ -45,29 +82,6 @@ layers <- npn_get_layer_details()
   # Raster with return intervals for current year based on data over previous 
   # 40 years (NCEP data). Could use this as a gut-check for return intervals we 
   # calculate at the county level
-
-# Set parameters --------------------------------------------------------------#
-
-# Current year
-year <- 2025
-
-# First year to download layers for
-year1 <- 1981
-
-# Prior years
-prior_years <- year1:(year - 1)
-
-# Location to save rasters
-rast_folder <- "resources/rasters/"
-
-# Logical to indicate whether script should be re-run to calculate current year
-# index values as of today's date (if not done already)
-rerun_today <- TRUE
-
-# Minimum proportion of county that has reached spring index threshold 
-min_prop <- 0.90
-# If less than (min_prop * 100)% of county has reached spring index threshold, 
-# we will not calculate a county mean.
 
 # Get US county layer ---------------------------------------------------------#
 
@@ -199,44 +213,150 @@ for (ind in index) {
 # reached in each county and year (value = NA if 90% of county has not reached
 # the first leaf/bloom).
 
-# For each county: we can list the top 10 earliest/latest years, and note which
-# counties have current year in top 10 lists.
+# For each county we can provide tables with annual values, including those 
+# from the current year.
 
 # For counties where spring index has been reached in current year: we can 
 # calculate anomalies (ie, the number of days earlier/later the current year is 
-# than historical average). This is similar to the spring index maps on the NPN 
-# website, but aggregated by county.
+# than historical average). We can also calculate the return interval,
+# or the frequency over the last 40 years with which spring has been as early or 
+# late as that in the current year. We can "gut check" our calculations of 
+# anomalies and return intervals at the county level with high resolution maps
+# provided on NPN website.
 
-# Visualize leaf spring index values ------------------------------------------#
+# Format and save tables with raw data ----------------------------------------#
+
+# Identify whether to restrict output to current year + previous 40 years
+# (this would be similar to approach NPN has used previously, particularly for
+# return intervals)
+prior40 <- TRUE
+
+# Select whether to have one row per county (columns = years; county_row = TRUE)
+# or one column per county (rows = years; county_row = FALSE)
+county_row <- TRUE
+
+# Identify whether to create table for leaf index and/or bloom index
+leaf_table <- TRUE
+bloom_table <- TRUE
+
+if (leaf_table) {
+  
+  # Read csv with annual leaf index values
+  leaf_doy_file <- paste0("output/county-leaf-index-", year1, "-", year, ".csv") 
+  leaf <- read.csv(leaf_doy_file, colClasses = c(STATEFP = "character",
+                                                 COUNTYFP = "character"))
+  
+  # Create columns to uniquely identify each county
+  leaf <- leaf %>%
+    mutate(FIPS = paste0(STATEFP, COUNTYFP),
+           name_FIPS = paste0(state, "_", county, "_", FIPS)) %>%
+    relocate(c(FIPS, name_FIPS)) %>%
+    arrange(FIPS)
+
+  if (prior40) {
+    earliest_yr <- year - 40
+    cols_to_remove <- paste0("doy_", year1:(earliest_yr - 1))
+    leaf <- leaf %>%
+      select(-all_of(cols_to_remove))
+  }
+  
+  if (!county_row) {
+    doys <- t(as.matrix(select(leaf, contains("doy")))) %>%
+      data.frame()
+    colnames(doys) <- leaf$name_FIPS
+    doys <- doys %>%
+      mutate(year = as.numeric(str_remove(rownames(doys), "doy_"))) %>%
+      relocate(year)
+    rownames(doys) <- NULL
+    leaf <- doys
+  }
+
+  # Write to csv file
+  # Filename will begin with "OUTPUT" and will contain today's date
+  earliest_yr <- ifelse(earliest_yr > year1, earliest_yr, year1)
+  leaf_out <- paste0("output/OUTPUT-county-leaf-index-", earliest_yr, "-", 
+                     str_remove_all(today(), "-"), ".csv")
+  write.csv(leaf, leaf_out, row.names = FALSE)
+
+}
+
+if (bloom_table) {
+  
+  # Read csv with annual bloom index values
+  bloom_doy_file <- paste0("output/county-bloom-index-", year1, "-", year, ".csv") 
+  bloom <- read.csv(bloom_doy_file, colClasses = c(STATEFP = "character",
+                                                 COUNTYFP = "character"))
+  
+  # Create columns to uniquely identify each county
+  bloom <- bloom %>%
+    mutate(FIPS = paste0(STATEFP, COUNTYFP),
+           name_FIPS = paste0(state, "_", county, "_", FIPS)) %>%
+    relocate(c(FIPS, name_FIPS)) %>%
+    arrange(FIPS)
+  
+  if (prior40) {
+    earliest_yr <- year - 40
+    cols_to_remove <- paste0("doy_", year1:(earliest_yr - 1))
+    bloom <- bloom %>%
+      select(-all_of(cols_to_remove))
+  }
+  
+  if (!county_row) {
+    doys <- t(as.matrix(select(bloom, contains("doy")))) %>%
+      data.frame()
+    colnames(doys) <- bloom$name_FIPS
+    doys <- doys %>%
+      mutate(year = as.numeric(str_remove(rownames(doys), "doy_"))) %>%
+      relocate(year)
+    rownames(doys) <- NULL
+    bloom <- doys
+  }
+  
+  # Write to csv file
+  # Note: Appending today's date to file name 
+  # Filename will begin with "OUTPUT" and will contain today's date
+  earliest_yr <- ifelse(earliest_yr > year1, earliest_yr, year1)
+  bloom_out <- paste0("output/OUTPUT-county-bloom-index-", earliest_yr, "-", 
+                      str_remove_all(today(), "-"), ".csv")
+  write.csv(bloom, bloom_out, row.names = FALSE)
+  
+}
+
+
+
+# Visualize spring leaf index anomalies in each county ------------------------#
+# And see how they compare to NPN gridded product
 
 # Read csv with annual leaf index values
 leaf_doy_file <- paste0("output/county-leaf-index-", year1, "-", year, ".csv") 
 leaf <- read.csv(leaf_doy_file, colClasses = c(STATEFP = "character",
                                                COUNTYFP = "character"))
 
-# Calculate anomalies
-prior_yr_cols <- paste0("doy_", prior_years)
-leaf$mean <- apply(leaf[, prior_yr_cols], 1, mean)
-leaf$median <- apply(leaf[, prior_yr_cols], 1, median)
+# Restrict values to last 40 years + current
+earliest_yr <- year - 40
+cols_to_remove <- paste0("doy_", year1:(earliest_yr - 1))
 leaf <- leaf %>%
-  mutate(across(.cols = starts_with("doy_"),
-                .fns = ~.x - mean,
-                .names = "{sub('doy', 'anom', col)}"))
+  select(-all_of(cols_to_remove))
+
+# Calculate current-year anomalies (based on 30-year means)
+yr30_cols <- paste0("doy_", 1991:2020)
+leaf$mean <- apply(leaf[, yr30_cols], 1, mean)
+leaf <- leaf %>%
+  mutate(anom = doy_2025 - mean)
 
 # Add current year anomalies to county polygons
-current_anoms <- paste0("anom_", year)
 counties2 <- merge(counties, 
-                   select(leaf, STATEFP, COUNTYFP, contains(current_anoms)),
+                   select(leaf, STATEFP, COUNTYFP, anom),
                    by.x = c("STATEFP", "COUNTYFP"))
 
 # Limits for nice colors in map
-limit <- max(abs(data.frame(counties2[,current_anoms])), na.rm = TRUE)
+limit <- max(abs(data.frame(counties2[,"anom"])), na.rm = TRUE)
 limit_round <- ifelse(limit < 10, 5, floor(limit / 10) * 10)
 limits <- limit * c(-1, 1)
 
 # Create map
 leaf_a_map <- ggplot(counties2) +
-  geom_spatvector(aes(fill = get(current_anoms)), color = NA) +
+  geom_spatvector(aes(fill = anom), color = NA) +
   scale_fill_distiller(palette = "Spectral", limit = limits, direction = 1,
                        breaks = c(-limit_round, 0, limit_round),
                        labels = c(paste0(limit_round, " days early"), "Average",
@@ -249,143 +369,68 @@ leaf_a_map <- ggplot(counties2) +
         legend.ticks = element_line(color = "black"))
 leaf_a_map
 
-# Create dataframe with spring rankings for prior years (not including current)
-  # Wasn't sure what to do with ties (see WV: Wood for an example), so for now,
-  # put more recent year first
-prior_cols <- paste0("doy_", prior_years)
-leafr <- leaf %>%
-  select(-contains("anom")) %>%
-  select(-contains(paste0("doy_", year))) %>%
-  pivot_longer(cols = all_of(prior_cols),
+# Download gridded layer to compare
+anom_grid <- npn_download_geospatial("si-x:leaf_anomaly",
+                                     date = today() - 1)
+anom_grid <- rast(anom_grid)
+names(anom_grid) <- "anom"
+freq(anom_grid)
+
+leaf_ag_map <- ggplot() +
+  geom_spatraster(data = anom_grid, aes(fill = anom)) +
+  scale_fill_distiller(palette = "Spectral", direction = 1,
+                       limit = c(-20, 10)) 
+leaf_ag_map
+leaf_a_map
+
+# Visualize spring leaf index return intervals in each county -----------------#
+# And see how they compare to NPN gridded product
+
+leafl <- leaf %>%
+  select(STATEFP, COUNTYFP, state, county, contains("doy_")) %>%
+  rename(currentyr = all_of(paste0("doy_", year))) %>%
+  pivot_longer(cols = contains("doy_"),
                names_to = "year",
                values_to = "doy") %>%
   mutate(year = as.numeric(str_remove(year, "doy_"))) %>%
-  group_by(STATEFP, COUNTYFP, state, county, mean, median) %>%
-  mutate(rank = rank(doy)) %>%
-  arrange(STATEFP, COUNTYFP, rank, desc(year)) %>%
-  data.frame()
-
-leafrr <- leafr %>%
-  group_by(STATEFP, COUNTYFP, state, county, mean, median) %>%
-  summarize(early01 = year[1],
-            early02 = year[2],
-            early03 = year[3],
-            early04 = year[4],
-            early05 = year[5],
-            early06 = year[6],
-            early07 = year[7],
-            early08 = year[8],
-            early09 = year[9],
-            early10 = year[10],
-            late01 = year[length(prior_years)],
-            late02 = year[length(prior_years) - 1],
-            late03 = year[length(prior_years) - 2],
-            late04 = year[length(prior_years) - 3],
-            late05 = year[length(prior_years) - 4],
-            late06 = year[length(prior_years) - 5],
-            late07 = year[length(prior_years) - 6],
-            late08 = year[length(prior_years) - 7],
-            late09 = year[length(prior_years) - 8],
-            late10 = year[length(prior_years) - 9],
+  group_by(STATEFP, COUNTYFP, state, county, currentyr) %>%
+  summarize(mean40 = mean(doy),
+            median40 = median(doy),
+            n_earlier = length(doy[doy < currentyr]),
+            n_later = length(doy[doy > currentyr]),
             .groups = "keep") %>%
   data.frame()
 
-# Create indicators to see whether recent years in top 10 earliest
-leafrr$e2024 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2024), 1, 0))
-leafrr$e2023 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2023), 1, 0))
-leafrr$e2022 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2022), 1, 0))
-leafrr$e2021 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2021), 1, 0))
-leafrr$e2020 <- apply(leafrr[, grepl("early", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2020), 1, 0))
+# If it's the latest observation over the 41 years, then the return interval
+# should be 41 years.
+# If there's only one year with a later observation, then the return interval
+# should be 20.5 (41/2) years since something this extreme happened 2x in 41 yrs
+# If it falls right in the middle, then the return interval shoudl be 2 years 
+# (41/20), right?
 
-# Create indicators to see whether recent years in top 10 latest
-leafrr$l2024 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2024), 1, 0))
-leafrr$l2023 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2023), 1, 0))
-leafrr$l2022 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2022), 1, 0))
-leafrr$l2021 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2021), 1, 0))
-leafrr$l2020 <- apply(leafrr[, grepl("late", colnames(leafrr))], 1, 
-                      function(x) ifelse(any(x == 2020), 1, 0))
 
-leafrr$e20_sum <- apply(leafrr[, paste0("e202", 0:4)], 1, sum)
-leafrr$l20_sum <- apply(leafrr[, paste0("l202", 0:4)], 1, sum)
-# Average number of 2020 years in the top 10 earliest or latest
-summary(leafrr[, c("e20_sum", "l20_sum")])
-# Number of 2020 years in top 10 earliest or latest
-count(leafrr, e20_sum)
-count(leafrr, l20_sum)
-# Recent years more likely to be in early than late.
+  # How did they calculate it?
+  returns <- npn_download_geospatial("si-x:leaf_return_interval",
+                                     date = "2025-02-12")
+  returns <- rast(returns)
+  ann_files <- list.files(paste0(rast_folder, "leaf"), full.names = TRUE)
+  ann_files <- str_subset(ann_files, pattern = "ncep_", negate = TRUE)
+  ann_files <- str_subset(ann_files, pattern = "1981|1982|1983|1984", 
+                          negate = TRUE)
+  mrast <- rast(ann_files)
+  names(mrast) <- paste0("y", str_sub(names(mrast), 1, 4))
+  point_ext <- terra::extract(x = mrast, y = data.frame(x = -111, y = 32), 
+                              raw = TRUE)
+  priors <- point_ext[2:41]
+  summary(priors)
+  point_ext[42]
+  
+  return_ext <- terra::extract(x = returns, y = data.frame(x = -111, y = 32), 
+                               raw = TRUE)
+  # If late, I think it should be:
+  41 / sum(priors > point_ext[42])
+  # If early:
+  41 / sum(priors < point_ext[42])
 
-# Could also present ranked years in table where each column is a county
-leafrr_t <- leafrr %>%
-  # Using FIPS codes because there are a few county names that are duplicates
-  # (Baltimore county and city; 24005, 24510)
-  mutate(fips = paste0("fp_", STATEFP, COUNTYFP)) %>%
-  select(fips, 
-         paste0("early0", 1:9), "early10", 
-         paste0("late0", 1:9), "late10") %>%
-  pivot_longer(cols = -fips, 
-               names_to = "rank") %>%
-  # group_by(state_co) %>%
-  # mutate(row = row_number()) %>%
-  pivot_wider(names_from = fips,
-              values_from = value) %>%
-  # select(-row) %>%
-  data.frame()
-
-# Create dataframe with spring rankings that include the current year
-# If ties, put more recent year first
-year_cols <- paste0("doy_", c(prior_years, year))
-leafr_current <- leaf %>%
-  select(-contains("anom")) %>%
-  filter(!is.na(get(paste0("doy_", year)))) %>%
-  pivot_longer(cols = all_of(year_cols),
-               names_to = "year",
-               values_to = "doy") %>%
-  mutate(year = as.numeric(str_remove(year, "doy_"))) %>%
-  group_by(STATEFP, COUNTYFP, state, county, mean, median) %>%
-  mutate(rank = rank(doy)) %>%
-  arrange(STATEFP, COUNTYFP, rank, desc(year)) %>%
-  data.frame()
-leafrr_current <- leafr_current %>%
-  group_by(STATEFP, COUNTYFP, state, county, mean, median) %>%
-  summarize(earliest = ifelse(year[1] == 2025, 1, 0),
-            top5 = ifelse(any(year[1:5] == 2025), 1, 0),
-            top10 = ifelse(any(year[1:10] == 2025), 1, 0),
-            .groups = "keep") %>%
-  data.frame() %>%
-  mutate(rank = case_when(
-    earliest == 1 ~ "Earliest", 
-    top5 == 1 ~ "Top 5", 
-    top10 == 1 ~ "Top 10", 
-    .default = "Not early"
-  )) %>%
-  mutate(rank = factor(rank, levels = c("Not early", "Top 10", 
-                                        "Top 5", "Earliest")))
-filter(leafrr_current, top10 == 1)
-
-# Create map
-counties3 <- left_join(counties, 
-                       select(leafrr_current, STATEFP, COUNTYFP, rank),
-                       by = c("STATEFP", "COUNTYFP"))
-
-rank_map <- ggplot(counties3) +
-  geom_spatvector(aes(fill = rank), color = NA) +
-  scale_fill_manual(values = c("Not early" = "white", 
-                               "Top 10" = "yellow",
-                               "Top 5" = "orange",
-                               "Earliest" = "red"), 
-                    breaks = c("Not early", "Top 10", "Top 5"),
-                    drop = TRUE) +
-  labs(title = paste0("Leaf spring index, ", year, " ranking"),
-       fill = "Rank")
-rank_map
 
   
