@@ -403,11 +403,14 @@ leafl <- leaf %>%
 
 # If it's the latest observation over the 41 years, then the return interval
 # should be 41 years.
-# If there's only one year with a later observation, then the return interval
-# should be 20.5 (41/2) years since something this extreme happened 2x in 41 yrs
-# If it falls right in the middle, then the return interval shoudl be 2 years 
-# (41/20), right?
 
+# If there's only one year with a later observation, then the return interval
+# should be ~ 20 (41/2) years since something this extreme happened twice in 
+# 41 yrs. How are they identifying places with a 40-year return interval (which
+# are different than the earliest spring on record)?
+
+# If it falls right in the middle, then the return interval should be 2 years 
+# (41/20), right?
 
   # How did they calculate it?
   returns <- npn_download_geospatial("si-x:leaf_return_interval",
