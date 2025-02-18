@@ -41,21 +41,21 @@ rerun_today <- TRUE
 # Minimum proportion of county that has reached spring index threshold 
 min_prop <- 0.90
 # If less than (min_prop * 100)% of county has reached spring index threshold, 
-# we will not calculate a county mean.
+# county means in current year won't be calculated
 
 # Identify whether to restrict output to current year + previous 40 years
 # (this would be similar to approach NPN has used previously, particularly for
 # return intervals)
 prior40 <- TRUE
 
-# Identify whether to create a formatted table and save a csv file with leaf 
-# index and/or bloom index values 
+# Identify whether to create a formatted table and save a csv file with annual 
+# leaf index and/or bloom index values 
 leaf_table <- TRUE
 bloom_table <- TRUE
 
-# For csv file output: Select whether to have one row per county 
-# (columns = years; county_row = TRUE) or one column per county (rows = years; 
-# county_row = FALSE)
+# For csv file output: Select whether to have annual values for each county in 
+# rows (columns = years; county_row = TRUE) or values for each county in a 
+# column (rows = years; county_row = FALSE)
 county_row <- TRUE
 
 # Helper calls ----------------------------------------------------------------#
@@ -121,9 +121,9 @@ for (ind in index) {
     }
   }
   
-  # Download rasters for current year. Only do so if any current-year file 
-  # doesn't exist or if rerun_today == TRUE and layer for yesterday (most
-  # current non-forecasted layer) hasn't already been downloaded
+  # Download rasters for current year. Only do if there are no current-year 
+  # files or if rerun_today == TRUE and layer for yesterday (most current 
+  # non-forecasted layer) hasn't already been downloaded
   ncep_doy_files <- list.files(ind_folder, pattern = "ncep_", full.names = TRUE)
   ncep_doy_yest <- paste0(ind_folder, "/ncep_", str_remove_all(today() - 1, "-"), 
                           "_si-x_average_", ind, ".tif")
@@ -158,8 +158,8 @@ for (ind in index) {
 # Did some checks with terra and exactextractr packages
 # terra::extract() with na.rm = TRUE and exact = TRUE produces same results as
 # exactextractr::exact_extract() with fun = "mean".
-# Functions in exactextractr require sf vector objects, which is a pain but 
-# run much faster than terra functions, so we'll stick with exactextractr
+# Functions in exactextractr require sf vector objects, which is a pain, but 
+# run much faster than terra functions so we'll stick with exactextractr
 
 # After an initial run, realized that some county values were extreme (eg, more
 # than 30 days early) and high resolution spring maps on NPN website didn't
@@ -225,20 +225,9 @@ for (ind in index) {
 # provided on NPN website.
 
 # Format and save tables with raw data ----------------------------------------#
+# (Settings for these tables determined in first part of script)
 
-# Identify whether to restrict output to current year + previous 40 years
-# (this would be similar to approach NPN has used previously, particularly for
-# return intervals)
-prior40 <- TRUE
-
-# Select whether to have one row per county (columns = years; county_row = TRUE)
-# or one column per county (rows = years; county_row = FALSE)
-county_row <- TRUE
-
-# Identify whether to create table for leaf index and/or bloom index
-leaf_table <- TRUE
-bloom_table <- TRUE
-
+# Leaf index values
 if (leaf_table) {
   
   # Read csv with annual leaf index values
@@ -280,6 +269,7 @@ if (leaf_table) {
 
 }
 
+# Bloom index values
 if (bloom_table) {
   
   # Read csv with annual bloom index values
@@ -321,7 +311,6 @@ if (bloom_table) {
   write.csv(bloom, bloom_out, row.names = FALSE)
   
 }
-
 
 
 # Visualize spring leaf index anomalies in each county ------------------------#
