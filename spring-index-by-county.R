@@ -370,7 +370,6 @@ leaf_ag_map <- ggplot() +
   scale_fill_distiller(palette = "Spectral", direction = 1,
                        limit = c(-20, 10)) 
 leaf_ag_map
-leaf_a_map
 
 # Visualize spring leaf index return intervals in each county -----------------#
 # And see how they compare to NPN gridded product
