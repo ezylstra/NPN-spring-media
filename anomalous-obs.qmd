@@ -11,6 +11,14 @@ format:
     page-layout: full
     fig-cap-location: top
 editor: visual
+engine: knitr
+---
+
+```{css echo=FALSE}
+figure.quarto-float div.leaflet-control {
+  text-align: left;
+}
+```
 ---
 
 ```{r}
@@ -94,11 +102,13 @@ class1 <- "initial vegetative growth"
 class3 <- "leaves or needles"
 class6 <- "flowers or cones"
 class7 <- "open flowers or cones"
+
 include_1 <- ifelse(1 %in% pheno_class_ids, TRUE, FALSE)
 include_3 <- ifelse(3 %in% pheno_class_ids, TRUE, FALSE)
 include_6 <- ifelse(6 %in% pheno_class_ids, TRUE, FALSE)
 include_7 <- ifelse(7 %in% pheno_class_ids, TRUE, FALSE)
-include_1_7 <- ifelse(include_1 == TRUE & include_7 == TRUE, TRUE, FALSE)
+
+# Create text describing which phenophase classes are included in the report
 for (i in 1:length(pheno_class_ids)) {
   class <- pheno_class_ids[i]
   if (i == 1) {
@@ -112,6 +122,13 @@ for (i in 1:length(pheno_class_ids)) {
     }
   }
 }
+
+# Create a dataframe with mapping parameters for each phenophase class
+class_df <- data.frame(
+  id = pheno_class_ids,
+  title = str_to_sentence(unlist(mget(paste0("class", pheno_class_ids)))))
+class_df$col <- ifelse(class_df$id %in% c(1, 3), "green", "purple")
+class_df$icon <- ifelse(class_df$id %in% c(1, 3), "ileaf", "iflower")
 ```
 
 ```{r}
@@ -553,7 +570,6 @@ outtable7
 
 ```{r}
 #| label: leaflet
-#| eval: !expr include_1_7
 
 # Acquire raster with forecasted AGDD anomalies (in F, with 32-deg base)
 agdd_anom <- npn_download_geospatial(coverage_id = "gdd:agdd_anomaly",
@@ -579,37 +595,45 @@ states48v <- st_as_sf(states48v)
 # Radius for comparison observations, in meters
 radius_m <- radius * 1000
 
-# Extract early observations for initial vegetative growth (class 1) and 
-# open flowers (class 7)
-early1 <- quants_r_eo %>%
-  filter(early == 1 & pheno_class_id == 1) %>%
-  left_join(select(current, site_id, lon, lat) %>% distinct, by = "site_id")
-early7 <- quants_r_eo %>%
-  filter(early == 1 & pheno_class_id == 7) %>%
-  left_join(select(current, site_id, lon, lat) %>% distinct, by = "site_id")
+# Extract early observations for each phenophase class in dataset
+for (i in pheno_class_ids) {
+  assign(paste0("early", i),
+         quants_r_eo %>%
+           filter(early == 1 & pheno_class_id == i) %>%
+           left_join(select(current, site_id, lon, lat) %>% distinct, 
+                     by = c("site_id")))
+}
+# Now we can have dataframes named: early1, early3, early6, early 7
 
 # Map observations that are earlier than 95% of all previous first-of-the-year 
 # observations (and show radius used to delineate area for comparison)
-map <- leaflet(early1, options = leafletOptions(minZoom = 3)) %>%
+map <- leaflet(states48v) %>%
   addRasterImage(agdd_anom, colors = pal, opacity = 0.6) %>%
   addPolygons(data = states48v, color = "gray", weight = 1, fill = FALSE) %>%
-  addMarkers(lng = ~early1$lon, lat = ~early1$lat, icon = ileaf) %>%
-  addCircles(lng = ~early1$lon, lat = ~early1$lat, radius = ~radius_m,
-             color = "green", weight = 1, fill = FALSE) %>%
-  addMarkers(lng = ~early7$lon, lat = ~early7$lat, icon = iflower) %>%
-  addCircles(lng = ~early7$lon, lat = ~early7$lat, radius = ~radius_m,
-             color = "purple", weight = 1, fill = FALSE) %>%
   addLegend("bottomright", pal = pal, values = ~agdd_breaks,
             title = "AGDD anomaly", opacity = 1,
             labFormat = labelFormat(prefix = c("Cool (", "Normal (", "Warm ("),
                                     suffix = ")"))
+for (i in 1:nrow(class_df)) {
+  early_sub <- get(paste0("early", class_df$id[i]))
+  map <- map %>%
+    addMarkers(data = early_sub, lng = ~lon, lat = ~lat, 
+               group = class_df$title[i], icon = get(class_df$icon[i]),
+               popup = ~paste0(common_name, "<br>", 
+                               "ID: ", str_split_fixed(indiv, "_", 2))) %>%
+    addCircles(data = early_sub, lng = ~lon, lat = ~lat, radius = radius_m,
+               color = class_df$col[i], weight = 1, fill = FALSE,
+               group = class_df$title[i])
+}
+map <- map %>%
+  addLayersControl(overlayGroups = class_df$title[class_df$id %in% pheno_class_ids],
+                   options = layersControlOptions(collapsed = FALSE),
+                   position = "bottomleft")
 ```
 
 ```{r}
 #| label: fig-map
-#| eval: !expr include_1_7
-#| include: !expr include_1_7
-#| fig-cap: !expr glue::glue("Map of early observations of initial vegetative growth and early observations of open flowers or cones. Green leaves denote early observations of initial vegetative growth and purple flowers denote early observations of open flowers or cones. Circles delineate the areas containing plants observed in prior years that were used for comparison. Blue shading indicates areas that were cooler than normal as of {agdd_date} (>{abs(agdd_breaks[2])} deg F below 30-year normals for accumulated growing degree days with 32 deg F base); orange shading indicates areas that were warmer than normal as of {agdd_date} (>{agdd_breaks[3]} deg F above 30-year normals).")
+#| fig-cap: !expr glue::glue("Map of early phenological observations. Green leaves denote early observations of initial vegetative growth and/or leaves or needles, and purple flowers denote early observations of flowers or cones and/or open flowers or cones. Circles delineate the areas containing plants observed in prior years that were used for comparison. Blue shading indicates areas that were cooler than normal as of {agdd_date} (>{abs(agdd_breaks[2])} deg F below 30-year normals for accumulated growing degree days with 32 deg F base); orange shading indicates areas that were warmer than normal as of {agdd_date} (>{agdd_breaks[3]} deg F above 30-year normals). Clicking on an icon will display the species name and individual plant ID.")
 
 map
 ```
@@ -627,8 +651,7 @@ npanel7 <- n_distinct(prior_plot_r$panel[prior_plot_r$pheno_class_id == 7])
 npanels <- c(npanel1, npanel3, npanel6, npanel7)
 hist_width <- 15
 hist_heights <- 2.25 * ceiling(npanels / 2)
-# Change any figure heights that are 0 to 1 (won't matter since a height of 0 is only associated
-# with phenophase classes that weren't evaluated)
+# Change any figure heights that are 0 to 1 (won't matter since a height of 0 is only # associated with phenophase classes that weren't evaluated)
 hist_heights[hist_heights == 0] <- 1
 ```
 

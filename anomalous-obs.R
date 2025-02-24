@@ -433,26 +433,53 @@ states48v <- st_as_sf(states48v)
 # Radius for comparison observations, in meters
 radius_m <- radius * 1000
 
-# Extract early observations for initial vegetative growth (class 1) and 
-# open flowers (class 7)
-early1 <- quants_r_eo %>%
-  filter(early == 1 & pheno_class_id == 1) %>%
-  left_join(select(current, site_id, lon, lat) %>% distinct, by = "site_id")
-early7 <- quants_r_eo %>%
-  filter(early == 1 & pheno_class_id == 7) %>%
-  left_join(select(current, site_id, lon, lat) %>% distinct, by = "site_id")
+# Extract early observations for each phenophase class in dataset
+for (i in pheno_class_ids) {
+  assign(paste0("early", i),
+         quants_r_eo %>%
+           filter(early == 1 & pheno_class_id == i) %>%
+           left_join(select(current, site_id, lon, lat) %>% distinct, 
+                     by = c("site_id")))
+}
+# Now we can have dataframes named: early1, early3, early6, early 7
+
+# Short names for each phenophase class
+class1 <- "initial vegetative growth"
+class3 <- "leaves or needles"
+class6 <- "flowers or cones"
+class7 <- "open flowers or cones"
+
+# Create dataframe with mapping parameters for each phenophase class
+class_df <- data.frame(
+  id = pheno_class_ids,
+  title = str_to_sentence(unlist(mget(paste0("class", pheno_class_ids)))))
+class_df$col <- ifelse(class_df$id %in% c(1, 3), "green", "purple")
+class_df$icon <- ifelse(class_df$id %in% c(1, 3), "ileaf", "iflower")
 
 # Map observations that are earlier than 95% of all previous first-of-the-year 
 # observations (and show radius used to delineate area for comparison)
-map <- leaflet(early1, options = leafletOptions(minZoom = 3)) %>%
+map <- leaflet(states48v) %>%
   addRasterImage(agdd_anom, colors = pal, opacity = 0.6) %>%
   addPolygons(data = states48v, color = "gray", weight = 1, fill = FALSE) %>%
-  addMarkers(lng = ~early1$lon, lat = ~early1$lat, icon = ileaf) %>%
-  addCircles(lng = ~early1$lon, lat = ~early1$lat, radius = ~radius_m, 
-             color = "green", weight = 1, fill = FALSE) %>%
-  addMarkers(lng = ~early7$lon, lat = ~early7$lat, icon = iflower) %>%
-  addCircles(lng = ~early7$lon, lat = ~early7$lat, radius = ~radius_m,
-             color = "purple", weight = 1, fill = FALSE)
+  addLegend("bottomright", pal = pal, values = ~agdd_breaks,
+            title = "AGDD anomaly", opacity = 1,
+            labFormat = labelFormat(prefix = c("Cool (", "Normal (", "Warm ("),
+                                    suffix = ")"))
+for (i in 1:nrow(class_df)) {
+  early_sub <- get(paste0("early", class_df$id[i]))
+  map <- map %>%
+    addMarkers(data = early_sub, lng = ~lon, lat = ~lat, 
+               group = class_df$title[i], icon = get(class_df$icon[i]),
+               popup = ~paste0(common_name, "<br>", 
+                               "ID: ", str_split_fixed(indiv, "_", 2))) %>%
+    addCircles(data = early_sub, lng = ~lon, lat = ~lat, radius = radius_m,
+               color = class_df$col[i], weight = 1, fill = FALSE,
+               group = class_df$title[i])
+}
+map <- map %>%
+  addLayersControl(overlayGroups = class_df$title[class_df$id %in% pheno_class_ids],
+                   options = layersControlOptions(collapsed = FALSE), 
+                   position = "bottomleft")
 map
 
 # Create table with early and outlier observations for all phenophase classes
