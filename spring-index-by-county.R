@@ -86,7 +86,7 @@ layers <- npn_get_layer_details()
 # Get US county layer ---------------------------------------------------------#
 
 # File location
-counties_shp <- "resources/us_counties.shp"
+counties_shp <- "resources/shapefiles/us_counties.shp"
 
 # Download first and save to file, if not done already
 if (!file.exists(counties_shp)) {
