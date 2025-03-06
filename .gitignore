@@ -4,9 +4,9 @@
 .Ruserdata
 
 # Rasters with leaf spring index data
-resources/rasters/leaf*
-!resources/rasters/leaf/.gitkeep
+rasters/leaf*
+!rasters/leaf/.gitkeep
 
 # Rasters with bloom spring index data
-resources/rasters/bloom*
-!resources/rasters/bloom/.gitkeep
+rasters/bloom*
+!rasters/bloom/.gitkeep

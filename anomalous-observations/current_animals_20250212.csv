@@ -1,0 +1,230 @@
+"site_id","lat","lon","elev","state","common_name","species_id","func_type","phenophase_category","phenophase","pheno_class_id","year","first_yes","prior_no"
+31964,38.184769,-122.279083,2,"CA","Allen's hummingbird",1414,"Bird","Activity","Live individuals",62,2025,41,7
+43157,39.491673,-119.730858,1333,"NV","American coot",1379,"Bird","Activity","Live individuals",62,2025,36,22
+43353,39.497185,-119.730728,1338,"NV","American coot",1379,"Bird","Activity","Live individuals",62,2025,16,2
+43355,39.494022,-119.728737,1334,"NV","American coot",1379,"Bird","Activity","Live individuals",62,2025,16,2
+43356,39.496391,-119.728653,1335,"NV","American coot",1379,"Bird","Activity","Live individuals",62,2025,30,16
+10145,42.602543,-83.250992,272,"MI","American crow",1225,"Bird","Activity","Live individuals",62,2025,4,1
+17707,37.360123,-122.128151,97,"CA","American crow",1225,"Bird","Activity","Live individuals",62,2025,35,7
+25041,38.426029,-78.923943,381,"VA","American crow",1225,"Bird","Activity","Live individuals",62,2025,12,6
+47379,34.027267,-84.048752,327,"GA","American crow",1225,"Bird","Activity","Calls or song (birds)",67,2025,35,11
+8418,32.363758,-94.873947,108,"TX","American goldfinch",240,"Bird","Activity","Fruit/seed consumption",70,2025,5,4
+10145,42.602543,-83.250992,272,"MI","American goldfinch",240,"Bird","Activity","Individuals at a feeding station",135,2025,9,1
+25041,38.426029,-78.923943,381,"VA","American goldfinch",240,"Bird","Activity","Live individuals",62,2025,19,1
+43356,39.496391,-119.728653,1335,"NV","American kestrel",372,"Bird","Activity","Live individuals",62,2025,16,2
+44384,38.083454,-122.156075,50,"CA","American kestrel",372,"Bird","Activity","Live individuals",62,2025,22,7
+6481,42.456135,-72.344215,253,"MA","American robin",246,"Bird","Activity","Live individuals",62,2025,11,6
+8418,32.363758,-94.873947,108,"TX","American robin",246,"Bird","Activity","Feeding (or foraging)",68,2025,5,4
+10145,42.602543,-83.250992,272,"MI","American robin",246,"Bird","Activity","Live individuals",62,2025,4,1
+25041,38.426029,-78.923943,381,"VA","American robin",246,"Bird","Activity","Live individuals",62,2025,25,6
+25901,30.05377,-89.880486,0,"LA","American robin",246,"Bird","Activity","Live individuals",62,2025,36,7
+44383,38.089134,-122.157379,61,"CA","American robin",246,"Bird","Activity","Live individuals",62,2025,29,7
+47379,34.027267,-84.048752,327,"GA","American robin",246,"Bird","Activity","Live individuals",62,2025,24,2
+48555,33.813538,-84.28347,305,"GA","American robin",246,"Bird","Activity","Singing individuals (birds)",84,2025,36,20
+12725,37.360928,-122.130836,112,"CA","Anna's hummingbird",1088,"Bird","Activity","Individuals at a feeding station",135,2025,28,5
+12725,37.360928,-122.130836,112,"CA","Anna's hummingbird",1088,"Bird","Reproduction","Courtship ",77,2025,30,2
+19944,33.66478,-117.843063,3,"CA","Anna's hummingbird",1088,"Bird","Activity","Insect consumption",69,2025,31,18
+19944,33.66478,-117.843063,3,"CA","Anna's hummingbird",1088,"Bird","Reproduction","Courtship ",77,2025,31,18
+20956,33.632149,-117.55545,301,"CA","Anna's hummingbird",1088,"Bird","Activity","Calls or song (birds)",67,2025,39,28
+22613,32.33926,-110.981728,765,"AZ","Anna's hummingbird",1088,"Bird","Activity","Live individuals",62,2025,15,8
+22858,38.09404,-122.37149,0,"CA","Anna's hummingbird",1088,"Bird","Activity","Insect consumption",69,2025,13,7
+27407,38.037094,-122.394722,-2,"CA","Anna's hummingbird",1088,"Bird","Activity","Territorial individuals (birds)",83,2025,13,7
+38493,32.39724,-111.002159,801,"AZ","Anna's hummingbird",1088,"Bird","Activity","Live individuals",62,2025,18,7
+40165,32.374233,-110.968384,800,"AZ","Anna's hummingbird",1088,"Bird","Activity","Live individuals",62,2025,11,6
+42213,32.397331,-110.976746,767,"AZ","Anna's hummingbird",1088,"Bird","Activity","Live individuals",62,2025,37,9
+43119,44.571472,-123.291801,80,"OR","Anna's hummingbird",1088,"Bird","Activity","Singing individuals (birds)",84,2025,10,9
+44384,38.083454,-122.156075,50,"CA","Anna's hummingbird",1088,"Bird","Activity","Calls or song (birds)",67,2025,15,7
+44384,38.083454,-122.156075,50,"CA","Anna's hummingbird",1088,"Bird","Reproduction","Courtship ",77,2025,29,7
+43119,44.571472,-123.291801,80,"OR","California scrub-jay",1376,"Bird","Activity","Calls or song (birds)",67,2025,41,12
+51967,33.562931,-117.15921,365,"CA","California scrub-jay",1376,"Bird","Activity","Calls or song (birds)",67,2025,18,15
+10145,42.602543,-83.250992,272,"MI","Canada goose",1224,"Bird","Activity","Live individuals",62,2025,8,1
+43353,39.497185,-119.730728,1338,"NV","Canada goose",1224,"Bird","Activity","Live individuals",62,2025,16,2
+43355,39.494022,-119.728737,1334,"NV","Canada goose",1224,"Bird","Activity","Calls or song (birds)",67,2025,36,20
+56102,37.576412,-77.539986,42,"VA","Canada goose",1224,"Bird","Activity","Territorial individuals (birds)",83,2025,18,5
+8418,32.363758,-94.873947,108,"TX","Carolina chickadee",1233,"Bird","Activity","Singing individuals (birds)",84,2025,5,4
+8418,32.363758,-94.873947,108,"TX","Carolina wren",1126,"Bird","Activity","Singing individuals (birds)",84,2025,8,3
+10145,42.602543,-83.250992,272,"MI","Carolina wren",1126,"Bird","Activity","Individuals at a feeding station",135,2025,33,1
+48555,33.813538,-84.28347,305,"GA","Carolina wren",1126,"Bird","Activity","Singing individuals (birds)",84,2025,36,20
+10145,42.602543,-83.250992,272,"MI","Cooper's hawk",1218,"Bird","Activity","Individuals at a feeding station",135,2025,10,1
+47379,34.027267,-84.048752,327,"GA","Cooper's hawk",1218,"Bird","Activity","Calls or song (birds)",67,2025,7,5
+22613,32.33926,-110.981728,765,"AZ","Costa's hummingbird",1089,"Bird","Activity","Live individuals",62,2025,23,8
+44604,32.409863,-110.983147,814,"AZ","Costa's hummingbird",1089,"Bird","Activity","Live individuals",62,2025,16,6
+8418,32.363758,-94.873947,108,"TX","European starling",1123,"Bird","Activity","Live individuals",62,2025,23,4
+10145,42.602543,-83.250992,272,"MI","European starling",1123,"Bird","Activity","Live individuals",62,2025,13,1
+25041,38.426029,-78.923943,381,"VA","European starling",1123,"Bird","Activity","Calls or song (birds)",67,2025,18,6
+22613,32.33926,-110.981728,765,"AZ","Gambel's quail",368,"Bird","Activity","Live individuals",62,2025,15,8
+22613,32.33926,-110.981728,765,"AZ","Reakirt's blue",1134,"Insect","Activity","Adults",62,2025,31,8
+17707,37.360123,-122.128151,97,"CA","acorn woodpecker",1229,"Bird","Activity","Live individuals",62,2025,23,2
+51967,33.562931,-117.15921,365,"CA","acorn woodpecker",1229,"Bird","Activity","Territorial individuals (birds)",83,2025,18,15
+53580,39.874573,-76.36657,172,"PA","bald eagle",371,"Bird","Activity","Territorial individuals (birds)",83,2025,41,30
+53580,39.874573,-76.36657,172,"PA","bald eagle",371,"Bird","Reproduction","Mating (male on top)",82,2025,41,30
+8418,32.363758,-94.873947,108,"TX","barred owl",1122,"Bird","Activity","Live individuals",62,2025,30,4
+19944,33.66478,-117.843063,3,"CA","black phoebe",376,"Bird","Activity","Singing individuals (birds)",84,2025,31,18
+27407,38.037094,-122.394722,-2,"CA","black phoebe",376,"Bird","Activity","Live individuals",62,2025,27,7
+44384,38.083454,-122.156075,50,"CA","black phoebe",376,"Bird","Activity","Live individuals",62,2025,22,7
+1419,42.011166,-88.503304,280,"IL","black-capped chickadee",245,"Bird","Activity","Live individuals",62,2025,24,8
+10145,42.602543,-83.250992,272,"MI","black-capped chickadee",245,"Bird","Activity","Individuals at a feeding station",135,2025,3,1
+43119,44.571472,-123.291801,80,"OR","black-capped chickadee",245,"Bird","Activity","Singing individuals (birds)",84,2025,10,9
+31964,38.184769,-122.279083,2,"CA","black-crowned night-heron",1842,"Bird","Activity","Feeding (or foraging)",68,2025,20,7
+8418,32.363758,-94.873947,108,"TX","blue jay",1096,"Bird","Activity","Fruit/seed consumption",70,2025,8,3
+10145,42.602543,-83.250992,272,"MI","blue jay",1096,"Bird","Activity","Individuals at a feeding station",135,2025,4,1
+25041,38.426029,-78.923943,381,"VA","blue jay",1096,"Bird","Activity","Live individuals",62,2025,6,2
+47379,34.027267,-84.048752,327,"GA","blue jay",1096,"Bird","Activity","Calls or song (birds)",67,2025,15,7
+48555,33.813538,-84.28347,305,"GA","blue jay",1096,"Bird","Activity","Calls or song (birds)",67,2025,36,20
+8418,32.363758,-94.873947,108,"TX","brown creeper",1397,"Bird","Activity","Live individuals",62,2025,8,3
+8418,32.363758,-94.873947,108,"TX","brown-headed cowbird",363,"Bird","Activity","Live individuals",62,2025,26,3
+8418,32.363758,-94.873947,108,"TX","cedar waxwing",1195,"Bird","Activity","Live individuals",62,2025,15,3
+48555,33.813538,-84.28347,305,"GA","cedar waxwing",1195,"Bird","Activity","Live individuals",62,2025,36,20
+31964,38.184769,-122.279083,2,"CA","common moorhen",1786,"Bird","Activity","Live individuals",62,2025,20,7
+31964,38.184769,-122.279083,2,"CA","common raven",1703,"Bird","Activity","Live individuals",62,2025,20,7
+33136,48.728428,-122.453491,188,"WA","common raven",1703,"Bird","Activity","Live individuals",62,2025,32,10
+44385,38.09111,-122.153351,42,"CA","common raven",1703,"Bird","Activity","Live individuals",62,2025,29,7
+51967,33.562931,-117.15921,365,"CA","common raven",1703,"Bird","Activity","Calls or song (birds)",67,2025,18,15
+53580,39.874573,-76.36657,172,"PA","common raven",1703,"Bird","Activity","Live individuals",62,2025,26,15
+19944,33.66478,-117.843063,3,"CA","common yellowthroat",1197,"Bird","Activity","Singing individuals (birds)",84,2025,31,18
+55182,39.991276,-86.009056,247,"IN","coyote",1396,"Mammal","Activity","Feeding",68,2025,23,6
+12064,32.248463,-110.909584,746,"AZ","curve-billed thrasher",740,"Bird","Activity","Live individuals",62,2025,26,16
+8418,32.363758,-94.873947,108,"TX","dark-eyed junco",362,"Bird","Activity","Fruit/seed consumption",70,2025,5,4
+10145,42.602543,-83.250992,272,"MI","dark-eyed junco",362,"Bird","Activity","Singing individuals (birds)",84,2025,20,1
+25041,38.426029,-78.923943,381,"VA","dark-eyed junco",362,"Bird","Activity","Fruit/seed consumption",70,2025,6,2
+26897,40.128613,-75.340515,39,"PA","dark-eyed junco",362,"Bird","Activity","Feeding (or foraging)",68,2025,12,4
+43119,44.571472,-123.291801,80,"OR","dark-eyed junco",362,"Bird","Activity","Individuals at a feeding station",135,2025,41,15
+50991,43.089485,-89.291893,287,"WI","dark-eyed junco",362,"Bird","Activity","Fruit/seed consumption",70,2025,15,13
+56047,39.571911,-86.187576,225,"IN","dark-eyed junco",362,"Bird","Activity","Individuals at a feeding station",135,2025,5,4
+22613,32.33926,-110.981728,765,"AZ","desert cottontail",1235,"Mammal","Activity","Live individuals",62,2025,23,8
+8418,32.363758,-94.873947,108,"TX","downy woodpecker",1113,"Bird","Activity","Fruit/seed consumption",70,2025,5,4
+10145,42.602543,-83.250992,272,"MI","downy woodpecker",1113,"Bird","Activity","Live individuals",62,2025,2,1
+43119,44.571472,-123.291801,80,"OR","downy woodpecker",1113,"Bird","Activity","Insect consumption",69,2025,26,25
+48555,33.813538,-84.28347,305,"GA","downy woodpecker",1113,"Bird","Activity","Calls or song (birds)",67,2025,36,20
+8418,32.363758,-94.873947,108,"TX","eastern bluebird",356,"Bird","Activity","Live individuals",62,2025,12,4
+25041,38.426029,-78.923943,381,"VA","eastern bluebird",356,"Bird","Activity","Live individuals",62,2025,39,7
+25174,30.429096,-88.430626,1,"MS","eastern bluebird",356,"Bird","Activity","Live individuals",62,2025,38,11
+48555,33.813538,-84.28347,305,"GA","eastern chipmunk",271,"Mammal","Activity","Live individuals",62,2025,36,20
+10145,42.602543,-83.250992,272,"MI","eastern cottontail",410,"Mammal","Activity","Live individuals",62,2025,33,1
+25041,38.426029,-78.923943,381,"VA","eastern cottontail",410,"Mammal","Activity","Live individuals",62,2025,18,6
+8418,32.363758,-94.873947,108,"TX","eastern gray squirrel",1144,"Mammal","Activity","Fruit/seed consumption",70,2025,8,3
+10145,42.602543,-83.250992,272,"MI","eastern gray squirrel",1144,"Mammal","Activity","Live individuals",62,2025,4,1
+8418,32.363758,-94.873947,108,"TX","eastern phoebe",1117,"Bird","Activity","Live individuals",62,2025,5,4
+10145,42.602543,-83.250992,272,"MI","fox squirrel",1145,"Mammal","Activity","Live individuals",62,2025,9,1
+19944,33.66478,-117.843063,3,"CA","great blue heron",370,"Bird","Activity","Live individuals",62,2025,41,10
+44385,38.09111,-122.153351,42,"CA","great blue heron",370,"Bird","Activity","Live individuals",62,2025,29,7
+22858,38.09404,-122.37149,0,"CA","green-winged teal",1783,"Bird","Activity","Feeding (or foraging)",68,2025,13,7
+8418,32.363758,-94.873947,108,"TX","grey catbird",1099,"Bird","Activity","Live individuals",62,2025,15,3
+22613,32.33926,-110.981728,765,"AZ","gulf fritillary",1391,"Insect","Activity","Adults",62,2025,15,8
+8418,32.363758,-94.873947,108,"TX","house finch",2298,"Bird","Activity","Live individuals",62,2025,40,3
+48555,33.813538,-84.28347,305,"GA","house finch",2298,"Bird","Activity","Calls or song (birds)",67,2025,36,20
+47379,34.027267,-84.048752,327,"GA","house sparrow",1110,"Bird","Activity","Live individuals",62,2025,8,1
+51367,39.482601,-80.151489,301,"WV","house sparrow",1110,"Bird","Activity","Calls or song (birds)",67,2025,11,6
+19944,33.66478,-117.843063,3,"CA","killdeer",244,"Bird","Activity","Calls or song (birds)",67,2025,41,10
+27407,38.037094,-122.394722,-2,"CA","killdeer",244,"Bird","Activity","Live individuals",62,2025,27,7
+17670,37.359844,-122.127838,91,"CA","lesser goldfinch",1091,"Bird","Activity","Live individuals",62,2025,23,2
+43119,44.571472,-123.291801,80,"OR","lesser goldfinch",1091,"Bird","Activity","Live individuals",62,2025,10,9
+44383,38.089134,-122.157379,61,"CA","lesser goldfinch",1091,"Bird","Activity","Live individuals",62,2025,22,7
+10145,42.602543,-83.250992,272,"MI","mallard",1375,"Bird","Activity","Live individuals",62,2025,3,1
+22858,38.09404,-122.37149,0,"CA","mallard",1375,"Bird","Activity","Feeding (or foraging)",68,2025,27,7
+27407,38.037094,-122.394722,-2,"CA","mallard",1375,"Bird","Activity","Live individuals",62,2025,20,7
+43353,39.497185,-119.730728,1338,"NV","mallard",1375,"Bird","Activity","Live individuals",62,2025,36,22
+43355,39.494022,-119.728737,1334,"NV","mallard",1375,"Bird","Activity","Feeding (or foraging)",68,2025,16,2
+44385,38.09111,-122.153351,42,"CA","mallard",1375,"Bird","Activity","Calls or song (birds)",67,2025,22,7
+56102,37.576412,-77.539986,42,"VA","mallard",1375,"Bird","Activity","Live individuals",62,2025,28,3
+12064,32.248463,-110.909584,746,"AZ","monarch",396,"Insect","Activity","Adults",62,2025,10,1
+41741,32.20813,-110.921295,760,"AZ","monarch",396,"Insect","Activity","Adults",62,2025,31,4
+1419,42.011166,-88.503304,280,"IL","mourning dove",375,"Bird","Activity","Live individuals",62,2025,26,2
+6481,42.456135,-72.344215,253,"MA","mourning dove",375,"Bird","Activity","Feeding (or foraging)",68,2025,32,21
+8418,32.363758,-94.873947,108,"TX","mourning dove",375,"Bird","Activity","Calls or song (birds)",67,2025,5,4
+25041,38.426029,-78.923943,381,"VA","mourning dove",375,"Bird","Activity","Live individuals",62,2025,6,2
+26897,40.128613,-75.340515,39,"PA","mourning dove",375,"Bird","Activity","Feeding (or foraging)",68,2025,19,6
+27407,38.037094,-122.394722,-2,"CA","mourning dove",375,"Bird","Activity","Live individuals",62,2025,13,7
+44384,38.083454,-122.156075,50,"CA","mourning dove",375,"Bird","Activity","Calls or song (birds)",67,2025,29,7
+48555,33.813538,-84.28347,305,"GA","mourning dove",375,"Bird","Activity","Calls or song (birds)",67,2025,36,20
+50991,43.089485,-89.291893,287,"WI","mourning dove",375,"Bird","Activity","Live individuals",62,2025,15,13
+10717,38.285664,-111.246605,1652,"UT","mule deer",264,"Mammal","Activity","Live individuals",62,2025,18,6
+8418,32.363758,-94.873947,108,"TX","northern cardinal",1090,"Bird","Activity","Singing individuals (birds)",84,2025,5,4
+22613,32.33926,-110.981728,765,"AZ","northern cardinal",1090,"Bird","Activity","Live individuals",62,2025,31,8
+25041,38.426029,-78.923943,381,"VA","northern cardinal",1090,"Bird","Activity","Live individuals",62,2025,25,6
+26897,40.128613,-75.340515,39,"PA","northern cardinal",1090,"Bird","Activity","Fruit/seed consumption",70,2025,21,1
+48555,33.813538,-84.28347,305,"GA","northern cardinal",1090,"Bird","Activity","Singing individuals (birds)",84,2025,36,20
+51367,39.482601,-80.151489,301,"WV","northern cardinal",1090,"Bird","Activity","Calls or song (birds)",67,2025,11,6
+8418,32.363758,-94.873947,108,"TX","northern flicker",2198,"Bird","Activity","Live individuals",62,2025,23,4
+43157,39.491673,-119.730858,1333,"NV","northern harrier",1702,"Bird","Activity","Live individuals",62,2025,30,16
+43356,39.496391,-119.728653,1335,"NV","northern harrier",1702,"Bird","Activity","Live individuals",62,2025,16,2
+8418,32.363758,-94.873947,108,"TX","northern mockingbird",1108,"Bird","Activity","Live individuals",62,2025,15,3
+25041,38.426029,-78.923943,381,"VA","northern mockingbird",1108,"Bird","Activity","Live individuals",62,2025,25,6
+26079,30.451584,-88.655518,3,"MS","northern mockingbird",1108,"Bird","Activity","Live individuals",62,2025,30,14
+40165,32.374233,-110.968384,800,"AZ","phainopepla",1382,"Bird","Activity","Live individuals",62,2025,11,6
+42213,32.397331,-110.976746,767,"AZ","phainopepla",1382,"Bird","Activity","Live individuals",62,2025,21,2
+22613,32.33926,-110.981728,765,"AZ","pipevine swallowtail ",1129,"Insect","Activity","Adults",62,2025,15,8
+12064,32.248463,-110.909584,746,"AZ","queen",1133,"Insect","Activity","Adults",62,2025,10,1
+22613,32.33926,-110.981728,765,"AZ","queen",1133,"Insect","Activity","Adults",62,2025,15,8
+41741,32.20813,-110.921295,760,"AZ","queen",1133,"Insect","Activity","Adults",62,2025,34,3
+8418,32.363758,-94.873947,108,"TX","raccoon",407,"Mammal","Activity","Live individuals",62,2025,26,3
+10145,42.602543,-83.250992,272,"MI","red squirrel",1146,"Mammal","Activity","Live individuals",62,2025,16,1
+8418,32.363758,-94.873947,108,"TX","red-bellied woodpecker",1661,"Bird","Activity","Fruit/seed consumption",70,2025,40,3
+10145,42.602543,-83.250992,272,"MI","red-bellied woodpecker",1661,"Bird","Activity","Individuals at a feeding station",135,2025,4,1
+8418,32.363758,-94.873947,108,"TX","red-headed woodpecker",1708,"Bird","Activity","Live individuals",62,2025,40,3
+22979,41.556442,-93.267807,256,"IA","red-headed woodpecker",1708,"Bird","Activity","Live individuals",62,2025,24,8
+8418,32.363758,-94.873947,108,"TX","red-tailed hawk",733,"Bird","Activity","Live individuals",62,2025,5,4
+10145,42.602543,-83.250992,272,"MI","red-tailed hawk",733,"Bird","Activity","Live individuals",62,2025,4,1
+10145,42.602543,-83.250992,272,"MI","red-tailed hawk",733,"Bird","Reproduction","Nest building (birds)",86,2025,10,1
+22858,38.09404,-122.37149,0,"CA","red-tailed hawk",733,"Bird","Activity","Live individuals",62,2025,13,7
+43119,44.571472,-123.291801,80,"OR","red-tailed hawk",733,"Bird","Activity","Live individuals",62,2025,41,15
+43353,39.497185,-119.730728,1338,"NV","red-tailed hawk",733,"Bird","Activity","Live individuals",62,2025,16,2
+48555,33.813538,-84.28347,305,"GA","red-tailed hawk",733,"Bird","Activity","Live individuals",62,2025,36,20
+8418,32.363758,-94.873947,108,"TX","red-winged blackbird",359,"Bird","Activity","Calls or song (birds)",67,2025,26,3
+22858,38.09404,-122.37149,0,"CA","red-winged blackbird",359,"Bird","Activity","Live individuals",62,2025,20,7
+31964,38.184769,-122.279083,2,"CA","red-winged blackbird",359,"Bird","Activity","Live individuals",62,2025,20,7
+43353,39.497185,-119.730728,1338,"NV","red-winged blackbird",359,"Bird","Activity","Live individuals",62,2025,36,22
+44384,38.083454,-122.156075,50,"CA","red-winged blackbird",359,"Bird","Activity","Individuals at a feeding station",135,2025,29,7
+48555,33.813538,-84.28347,305,"GA","red-winged blackbird",359,"Bird","Activity","Live individuals",62,2025,36,20
+8418,32.363758,-94.873947,108,"TX","ruby-crowned kinglet",741,"Bird","Activity","Live individuals",62,2025,12,4
+43119,44.571472,-123.291801,80,"OR","ruby-crowned kinglet",741,"Bird","Activity","Individuals at a feeding station",135,2025,26,16
+56126,35.180302,-106.658401,1521,"NM","sandhill crane",364,"Bird","Activity","Live individuals",62,2025,27,12
+8418,32.363758,-94.873947,108,"TX","song sparrow",1380,"Bird","Activity","Fruit/seed consumption",70,2025,8,3
+10145,42.602543,-83.250992,272,"MI","song sparrow",1380,"Bird","Activity","Live individuals",62,2025,12,1
+22858,38.09404,-122.37149,0,"CA","song sparrow",1380,"Bird","Activity","Calls or song (birds)",67,2025,20,7
+26897,40.128613,-75.340515,39,"PA","song sparrow",1380,"Bird","Activity","Fruit/seed consumption",70,2025,16,5
+31964,38.184769,-122.279083,2,"CA","song sparrow",1380,"Bird","Activity","Calls or song (birds)",67,2025,13,7
+43119,44.571472,-123.291801,80,"OR","song sparrow",1380,"Bird","Activity","Live individuals",62,2025,10,9
+43157,39.491673,-119.730858,1333,"NV","song sparrow",1380,"Bird","Activity","Live individuals",62,2025,16,2
+43355,39.494022,-119.728737,1334,"NV","song sparrow",1380,"Bird","Activity","Live individuals",62,2025,16,2
+44384,38.083454,-122.156075,50,"CA","song sparrow",1380,"Bird","Activity","Fruit/seed consumption",70,2025,36,7
+48555,33.813538,-84.28347,305,"GA","song sparrow",1380,"Bird","Activity","Calls or song (birds)",67,2025,36,20
+44384,38.083454,-122.156075,50,"CA","spotted towhee",1665,"Bird","Activity","Live individuals",62,2025,22,7
+22613,32.33926,-110.981728,765,"AZ","spring azure",260,"Insect","Activity","Adults",62,2025,23,8
+22858,38.09404,-122.37149,0,"CA","tree swallow",1124,"Bird","Activity","Live individuals",62,2025,13,7
+22858,38.09404,-122.37149,0,"CA","tree swallow",1124,"Bird","Reproduction","Courtship ",77,2025,41,7
+8418,32.363758,-94.873947,108,"TX","tufted titmouse",1377,"Bird","Activity","Singing individuals (birds)",84,2025,12,4
+10145,42.602543,-83.250992,272,"MI","tufted titmouse",1377,"Bird","Activity","Individuals at a feeding station",135,2025,3,1
+48555,33.813538,-84.28347,305,"GA","tufted titmouse",1377,"Bird","Activity","Singing individuals (birds)",84,2025,36,20
+8418,32.363758,-94.873947,108,"TX","turkey vulture",1701,"Bird","Activity","Live individuals",62,2025,15,3
+10145,42.602543,-83.250992,272,"MI","turkey vulture",1701,"Bird","Activity","Live individuals",62,2025,25,1
+12064,32.248463,-110.909584,746,"AZ","verdin",1223,"Bird","Activity","Flower visitation",71,2025,9,4
+22613,32.33926,-110.981728,765,"AZ","verdin",1223,"Bird","Activity","Feeding (or foraging)",68,2025,23,8
+38493,32.39724,-111.002159,801,"AZ","verdin",1223,"Bird","Activity","Live individuals",62,2025,32,7
+40165,32.374233,-110.968384,800,"AZ","verdin",1223,"Bird","Activity","Live individuals",62,2025,18,4
+42213,32.397331,-110.976746,767,"AZ","verdin",1223,"Bird","Activity","Live individuals",62,2025,10,8
+44604,32.409863,-110.983147,814,"AZ","verdin",1223,"Bird","Activity","Live individuals",62,2025,10,8
+22858,38.09404,-122.37149,0,"CA","western bluebird",357,"Bird","Activity","Live individuals",62,2025,27,7
+43119,44.571472,-123.291801,80,"OR","western bluebird",357,"Bird","Activity","Live individuals",62,2025,26,16
+44383,38.089134,-122.157379,61,"CA","western bluebird",357,"Bird","Activity","Insect consumption",69,2025,15,7
+8418,32.363758,-94.873947,108,"TX","white-breasted nuthatch",1415,"Bird","Activity","Fruit/seed consumption",70,2025,40,3
+10145,42.602543,-83.250992,272,"MI","white-breasted nuthatch",1415,"Bird","Activity","Individuals at a feeding station",135,2025,4,1
+27407,38.037094,-122.394722,-2,"CA","white-crowned sparrow",1669,"Bird","Activity","Live individuals",62,2025,20,7
+38493,32.39724,-111.002159,801,"AZ","white-crowned sparrow",1669,"Bird","Activity","Live individuals",62,2025,32,7
+40165,32.374233,-110.968384,800,"AZ","white-crowned sparrow",1669,"Bird","Activity","Live individuals",62,2025,11,6
+42213,32.397331,-110.976746,767,"AZ","white-crowned sparrow",1669,"Bird","Activity","Live individuals",62,2025,21,2
+43119,44.571472,-123.291801,80,"OR","white-crowned sparrow",1669,"Bird","Activity","Live individuals",62,2025,10,9
+44604,32.409863,-110.983147,814,"AZ","white-crowned sparrow",1669,"Bird","Activity","Live individuals",62,2025,16,6
+10145,42.602543,-83.250992,272,"MI","white-tailed deer",270,"Mammal","Activity","Live individuals",62,2025,19,1
+27856,44.440258,-103.879349,1477,"SD","white-tailed deer",270,"Mammal","Activity","Live individuals",62,2025,42,7
+36830,37.510288,-76.89949,27,"VA","white-tailed deer",270,"Mammal","Activity","Live individuals",62,2025,20,9
+8418,32.363758,-94.873947,108,"TX","white-throated sparrow",739,"Bird","Activity","Live individuals",62,2025,23,4
+10145,42.602543,-83.250992,272,"MI","white-throated sparrow",739,"Bird","Activity","Individuals at a feeding station",135,2025,4,1
+26897,40.128613,-75.340515,39,"PA","white-throated sparrow",739,"Bird","Activity","Territorial individuals (birds)",83,2025,38,2
+8418,32.363758,-94.873947,108,"TX","white-winged dove",1128,"Bird","Activity","Live individuals",62,2025,8,3
+47379,34.027267,-84.048752,327,"GA","yellow warbler",358,"Bird","Activity","Calls or song (birds)",67,2025,35,11
+8418,32.363758,-94.873947,108,"TX","yellow-rumped warbler",1097,"Bird","Activity","Live individuals",62,2025,12,4
+25901,30.05377,-89.880486,0,"LA","yellow-rumped warbler",1097,"Bird","Reproduction","Courtship ",77,2025,15,11
+43119,44.571472,-123.291801,80,"OR","yellow-rumped warbler",1097,"Bird","Activity","Calls or song (birds)",67,2025,41,15
+44383,38.089134,-122.157379,61,"CA","yellow-rumped warbler",1097,"Bird","Activity","Live individuals",62,2025,22,7
+48555,33.813538,-84.28347,305,"GA","yellow-rumped warbler",1097,"Bird","Activity","Live individuals",62,2025,36,20

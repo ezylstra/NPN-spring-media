@@ -1,0 +1,4 @@
+- source: anomalous-obs.qmd
+  quarto-pub:
+    - id: c6838dbc-d380-49aa-a0d1-a3083a77504e
+      url: 'https://erinzylstra.quarto.pub/anomalous-spring-observations'
