@@ -145,7 +145,13 @@ for (ind in index) {
                 filename = paste0(ind_folder, "/", year, "_si-x_", ind, ".tif"),
                 overwrite = TRUE)
     
-    rm(ncep_doy_rast, prioryr_rast, current_rast)
+    # Remove ncep files that were downloaded previously
+    files_to_remove <- setdiff(ncep_doy_files, ncep_doy_yest)
+    file.remove(files_to_remove)
+    
+    # Remove objects from workspace that are no longer needed
+    rm(ncep_doy_rast, prioryr_rast, current_rast, files_to_remove,
+       ncep_doy_files, ncep_doy_yest)
   }
 }
   
@@ -311,7 +317,6 @@ if (bloom_table) {
   write.csv(bloom, bloom_out, row.names = FALSE)
   
 }
-
 
 # Visualize spring leaf index anomalies in each county ------------------------#
 # And see how they compare to NPN gridded product
