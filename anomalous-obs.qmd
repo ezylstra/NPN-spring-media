@@ -1,6 +1,7 @@
 ---
 title: "Anomalous spring observations"
-date: '`r format(Sys.time(), "%d %B, %Y")`'
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+engine: knitr
 execute:
   echo: false
   error: false
@@ -10,8 +11,8 @@ format:
   html:
     page-layout: full
     fig-cap-location: top
+    embed-resouces: true
 editor: visual
-engine: knitr
 ---
 
 ```{css echo=FALSE}
@@ -19,7 +20,8 @@ figure.quarto-float div.leaflet-control {
   text-align: left;
 }
 ```
----
+
+------------------------------------------------------------------------
 
 ```{r}
 #| label: parameters
@@ -38,6 +40,7 @@ library(tidyterra)
 library(elevatr)
 library(leaflet)
 library(kableExtra)
+library(progress)
 
 
 # Current year
@@ -136,7 +139,7 @@ class_df$icon <- ifelse(class_df$id %in% c(1, 3), "ileaf", "iflower")
 #| include: false
 
 # File location
-states_shp <- "resources/us_states.shp"
+states_shp <- "resources/shapefiles/us_states.shp"
 
 # If file exists, load it. Otherwise download it first.
 if (!file.exists(states_shp)) {
