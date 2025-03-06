@@ -3,6 +3,7 @@
 # Adapted from https://github.com/alyssarosemartin/spring-media/anomalous_obs
 # 12 Feb 2025
 
+library(here)
 library(rnpn)
 library(dplyr)
 library(lubridate)
@@ -90,7 +91,7 @@ cw_cols <- c("#6fa8d6", "#f7f0da", "#fa824d")
 # Get states layer ------------------------------------------------------------#
 
 # File location
-states_shp <- "shapefiles/us_states.shp"
+states_shp <- here("shapefiles", "us_states.shp")
 
 # If file exists, load it. Otherwise download it first.
 if (!file.exists(states_shp)) {
@@ -287,8 +288,8 @@ if (!file.exists(states_shp)) {
 # Compare current year observations with distribution of first observation dates
 # for plants within xx km and xx m elevation ----------------------------------#
 
-current <- read.csv("anomalous-observations/current_animals_20250212.csv")
-prior <- read.csv("anomalous-observations/prior_animals_20250212.csv")
+current <- read.csv(here("anomalous-observations", "current_animals_20250212.csv"))
+prior <- read.csv(here("anomalous-observations", "prior_animals_20250212.csv"))
 
 current$n_obs_r <- NA
 current$n_site_r <- NA

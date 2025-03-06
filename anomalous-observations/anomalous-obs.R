@@ -3,6 +3,7 @@
 # Adapted from https://github.com/alyssarosemartin/spring-media/anomalous_obs
 # 7 Feb 2025
 
+library(here)
 library(rnpn)
 library(dplyr)
 library(lubridate)
@@ -89,7 +90,7 @@ cw_cols <- c("#6fa8d6", "#f7f0da", "#fa824d")
 # Get states layer ------------------------------------------------------------#
 
 # File location
-states_shp <- "shapefiles/us_states.shp"
+states_shp <- here("shapefiles", "us_states.shp")
 
 # If file exists, load it. Otherwise download it first.
 if (!file.exists(states_shp)) {
@@ -260,18 +261,11 @@ prior <- prior %>%
   mutate(elev = ifelse(!is.na(elev), elev, elev_new)) %>%
   select(-elev_new)
 
-# write.csv(current,
-#           "anomalous-observations/current_20250204.csv",
-#           row.names = FALSE)
-# write.csv(prior,
-#           "anomalous-observations/prior_20250204.csv",
-#           row.names = FALSE)
-
 # Compare current year observations with distribution of first observation dates
 # for plants within xx km and xx m elevation ----------------------------------#
 
-# current <- read.csv("anomalous-observations/current_20250204.csv")
-# prior <- read.csv("anomalous-observations/prior_20250204.csv")
+# current <- read.csv(here("anomalous-observations", "current_20250204.csv"))
+# prior <- read.csv(here("anomalous-observations", "prior_20250204.csv"))
 
 current$n_obs_r <- NA
 current$n_indiv_r <- NA
@@ -424,10 +418,10 @@ pal <- colorBin (palette = cw_cols,
   # htmlwidgets::prependContent(backg)
 
 # Create flower icon
-iflower <- makeIcon(iconUrl = "icons/flower.ico",
+iflower <- makeIcon(iconUrl = here("icons", "flower.ico"),
                     iconWidth = 15, iconHeight = 15)
 # Create leaf icon
-ileaf <- makeIcon(iconUrl = "icons/leaf.png",
+ileaf <- makeIcon(iconUrl = here("icons", "leaf.png"),
                   iconWidth = 20, iconHeight = 20)
 
 # Create sf polygon feature with 48 states

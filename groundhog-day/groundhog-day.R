@@ -2,6 +2,7 @@
 # Adapted from https://github.com/alyssarosemartin/spring-media/blob/main/groundhog/groundhog.R#L1
 # 31 Jan 2025
 
+library(here)
 library(rnpn)
 library(dplyr)
 library(lubridate)
@@ -136,8 +137,10 @@ plot(ghd_class)
 ghd_plot <- ggplot() +
   geom_spatraster(data = ghd_class, maxcell = Inf) +
   scale_fill_manual(values = cols, na.value = "transparent") +
-  geom_image(data = leaf, aes(x = lon, y = lat, image = "icons/leaf.png")) +
-  geom_image(data = flower, aes(x = lon, y = lat, image = "icons/flower.ico")) +
+  geom_image(data = leaf, 
+             aes(x = lon, y = lat, image = here("icons", "leaf.png"))) +
+  geom_image(data = flower, 
+             aes(x = lon, y = lat, image = here("icons", "flower.ico"))) +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_blank(),
@@ -147,11 +150,14 @@ ghd_plot <- ggplot() +
         plot.background = element_rect(fill = "transparent", color = NA)) 
 ghd_plot
 
-ghd_filename <- paste0("groundhog-day/output/groundhog-day-", year, ".png")
-ggsave(filename = ghd_filename,
-       plot = ghd_plot,
-       width = 6,
-       height = 5,
-       units = "in",
-       dpi = 600,
-       bg = "transparent")
+ghd_filename <- here("groundhog-day/output",
+                     paste0("groundhog-day", year, ".png"))
+
+# Save to file (commented out for now, so we don't accidentally overwrite anything)
+# ggsave(filename = ghd_filename,
+#        plot = ghd_plot,
+#        width = 6,
+#        height = 5,
+#        units = "in",
+#        dpi = 600,
+#        bg = "transparent")

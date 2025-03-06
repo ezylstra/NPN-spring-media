@@ -3,6 +3,7 @@
 # Adapted from https://github.com/alyssarosemartin/spring-media/tree/main/earliest-spring-ranking
 # 13 Feb 2025
 
+library(here)
 library(rnpn)
 library(dplyr)
 library(lubridate)
@@ -32,7 +33,7 @@ year1 <- 1981
 prior_years <- year1:(year - 1)
 
 # Location to save rasters
-rast_folder <- "rasters/"
+rast_folder <- here("rasters")
 
 # Logical to indicate whether script should be re-run to calculate current year
 # index values as of today's date (if not done already)
@@ -86,7 +87,7 @@ layers <- npn_get_layer_details()
 # Get US county layer ---------------------------------------------------------#
 
 # File location
-counties_shp <- "shapefiles/us_counties.shp"
+counties_shp <- here("shapefiles", "us_counties.shp")
 
 # Download first and save to file, if not done already
 if (!file.exists(counties_shp)) {
@@ -108,7 +109,7 @@ index <- c("leaf", "bloom")
 
 for (ind in index) {
   
-  ind_folder <- paste0(rast_folder, ind)
+  ind_folder <- paste0(rast_folder, "/", ind)
   ind_files <- paste0(ind_folder, "/", prior_years, "_si-x_", ind, "_prism.tif")
   
   # Download rasters for prior years 
@@ -177,7 +178,7 @@ for (ind in index) {
 for (ind in index) {
   
   # Create multi-layer raster
-  ann_files <- list.files(paste0(rast_folder, ind), full.names = TRUE)
+  ann_files <- list.files(paste0(rast_folder, "/", ind), full.names = TRUE)
   ann_files <- str_subset(ann_files, pattern = "ncep_", negate = TRUE)
   mrast <- rast(ann_files)
   names(mrast) <- paste0("y", str_sub(names(mrast), 1, 4))
@@ -207,8 +208,8 @@ for (ind in index) {
     arrange(STATEFP, COUNTYFP)
 
   # Save to file
-  doy_file <- paste0("spring-index-by-county/output/county-", ind, 
-                     "-index-", year1, "-", year, ".csv")
+  doy_file <- here("spring-index-by-county/output",
+                   paste0("county-", ind, "-index-", year1, "-", year, ".csv"))
   write.csv(ind_doy,
             file = doy_file, 
             row.names = FALSE)
@@ -239,8 +240,8 @@ for (ind in index) {
 if (leaf_table) {
   
   # Read csv with annual leaf index values
-  leaf_doy_file <- paste0("spring-index-by-county/output/county-leaf-index-", 
-                          year1, "-", year, ".csv") 
+  leaf_doy_file <- here("spring-index-by-county/output",
+                        paste0("county-leaf-index-", year1, "-", year, ".csv"))
   leaf <- read.csv(leaf_doy_file, colClasses = c(STATEFP = "character",
                                                  COUNTYFP = "character"))
   
@@ -272,8 +273,9 @@ if (leaf_table) {
   # Write to csv file
   # Filename will begin with "OUTPUT" and will contain today's date
   earliest_yr <- ifelse(earliest_yr > year1, earliest_yr, year1)
-  leaf_out <- paste0("spring-index-by-county/output/OUTPUT-county-leaf-index-", 
-                     earliest_yr, "-", str_remove_all(today(), "-"), ".csv")
+  leaf_out <- here("spring-index-by-county/output",
+                   paste0("OUTPUT-county-leaf-index-", earliest_yr, "-", 
+                          str_remove_all(today(), "-"), ".csv"))
   write.csv(leaf, leaf_out, row.names = FALSE)
 
 }
@@ -282,8 +284,8 @@ if (leaf_table) {
 if (bloom_table) {
   
   # Read csv with annual bloom index values
-  bloom_doy_file <- paste0("spring-index-by-county/output/county-bloom-index-", 
-                           year1, "-", year, ".csv") 
+  bloom_doy_file <- here("spring-index-by-county/output",
+                         paste0("county-bloom-index-", year1, "-", year, ".csv"))
   bloom <- read.csv(bloom_doy_file, colClasses = c(STATEFP = "character",
                                                  COUNTYFP = "character"))
   
@@ -316,8 +318,9 @@ if (bloom_table) {
   # Note: Appending today's date to file name 
   # Filename will begin with "OUTPUT" and will contain today's date
   earliest_yr <- ifelse(earliest_yr > year1, earliest_yr, year1)
-  bloom_out <- paste0("spring-index-by-county/output/OUTPUT-county-bloom-index-", 
-                      earliest_yr, "-", str_remove_all(today(), "-"), ".csv")
+  bloom_out <- here("spring-index-by-county/output",
+                    paste0("OUTPUT-county-bloom-index-", earliest_yr, "-", 
+                           str_remove_all(today(), "-"), ".csv"))
   write.csv(bloom, bloom_out, row.names = FALSE)
   
 }
@@ -326,8 +329,8 @@ if (bloom_table) {
 # And see how they compare to NPN gridded product
 
 # Read csv with annual leaf index values
-leaf_doy_file <- paste0("spring-index-by-county/output/county-leaf-index-", 
-                        year1, "-", year, ".csv") 
+leaf_doy_file <- here("spring-index-by-county/output",
+                      paste0("county-leaf-index-", year1, "-", year, ".csv"))
 leaf <- read.csv(leaf_doy_file, colClasses = c(STATEFP = "character",
                                                COUNTYFP = "character"))
 
