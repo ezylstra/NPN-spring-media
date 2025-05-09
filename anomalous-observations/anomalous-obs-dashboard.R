@@ -27,7 +27,7 @@ source(here("anomalous-observations", "functions.R"))
 # Set parameters --------------------------------------------------------------#
 
 # Current year
-year <- 2025
+year <- year(Sys.Date())
 
 # Prior years
 prior_years <- 2009:(year - 1)
@@ -178,12 +178,14 @@ for (pheno_class in pheno_class_ids) {
       dl_temp <- npn_download_individual_phenometrics(
         request_source = 'erinz',
         years = prior_years,
-        species_ids = missing_spp,
+        species_ids = missing_spp, 
         pheno_class_ids = pheno_class,
         additional_fields = c("observed_status_conflict_flag",
                               "species_functional_type")
       )
-      
+      #TODO: wait for package update or create code to handle error that results
+      # from downloading data for species that don't have any observations
+
       missing_data <- ind_ph_cleanup(dl_temp)
       missing_data <- state_fill_in(missing_data)
       missing_data <- elev_fill_in(missing_data)
