@@ -1,4 +1,8 @@
 - source: anomalous-obs.qmd
   quarto-pub:
     - id: c6838dbc-d380-49aa-a0d1-a3083a77504e
-      url: 'https://erinzylstra.quarto.pub/anomalous-spring-observations'
+      url: https://erinzylstra.quarto.pub/anomalous-spring-observations
+- source: anomalous-obs-autumn.qmd
+  quarto-pub:
+    - id: d6054abb-c6a5-4973-8a93-dcd6317b8f61
+      url: https://erinzylstra.quarto.pub/anomalous-autumn-observations-2025
