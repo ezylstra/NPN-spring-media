@@ -11,7 +11,7 @@ format:
   html:
     page-layout: full
     fig-cap-location: top
-    embed-resources: true
+    embed-resources: false
 editor: visual
 ---
 
@@ -238,10 +238,10 @@ current <- current %>%
 for (pheno_class in pheno_class_ids) {
   spp <- unique(current$species_id[current$pheno_class_id == pheno_class])
   dl_temp <- npn_download_individual_phenometrics(
-               request_source = 'erinz', 
+               request_source = 'erinz',
                years = prior_years,
                species_ids = spp,
-               pheno_class_ids = pheno_class, 
+               pheno_class_ids = pheno_class,
                additional_fields = c("observed_status_conflict_flag",
                                      "species_functional_type")
               )
